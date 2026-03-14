@@ -1,0 +1,2034 @@
+version: 1
+directus: 10.13.4
+vendor: postgres
+collections:
+  - collection: blog_posts
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: blog_posts
+  - collection: tags
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: tags
+  - collection: blog_posts_tags
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: blog_posts_tags
+  - collection: social_publish_logs
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: social_publish_logs
+  - collection: projects
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: projects
+  - collection: projects_tags
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: projects_tags
+  - collection: campaigns
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: campaigns
+  - collection: ttrpg_journals
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: ttrpg_journals
+  - collection: ttrpg_characters
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: ttrpg_characters
+  - collection: ttrpg_lore
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: ttrpg_lore
+  - collection: ttrpg_homebrew
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: ttrpg_homebrew
+  - collection: career_entries
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: career_entries
+  - collection: testimonials
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: testimonials
+  - collection: tech_stack_items
+    meta:
+      singleton: false
+      accountability: all
+    schema:
+      name: tech_stack_items
+  - collection: site_settings
+    meta:
+      singleton: true
+      accountability: all
+    schema:
+      name: site_settings
+fields:
+  - collection: blog_posts
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: blog_posts
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: blog_posts
+    field: title
+    type: string
+    meta:
+      required: true
+      interface: input
+    schema:
+      name: title
+      table: blog_posts
+      data_type: character varying
+      is_nullable: false
+  - collection: blog_posts
+    field: slug
+    type: string
+    meta:
+      required: true
+      interface: input
+    schema:
+      name: slug
+      table: blog_posts
+      data_type: character varying
+      is_nullable: false
+      is_unique: true
+  - collection: blog_posts
+    field: body_markdown
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: body_markdown
+      table: blog_posts
+      data_type: text
+      is_nullable: true
+  - collection: blog_posts
+    field: excerpt
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: excerpt
+      table: blog_posts
+      data_type: character varying
+      is_nullable: true
+  - collection: blog_posts
+    field: status
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Draft
+            value: draft
+          - text: Published
+            value: published
+    schema:
+      name: status
+      table: blog_posts
+      data_type: character varying
+      default_value: draft
+      is_nullable: true
+  - collection: blog_posts
+    field: is_featured
+    type: boolean
+    meta:
+      interface: boolean
+    schema:
+      name: is_featured
+      table: blog_posts
+      data_type: boolean
+      default_value: false
+      is_nullable: false
+  - collection: blog_posts
+    field: featured_image
+    type: uuid
+    meta:
+      interface: file-image
+    schema:
+      name: featured_image
+      table: blog_posts
+      data_type: uuid
+      is_nullable: true
+  - collection: blog_posts
+    field: content_hash
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: content_hash
+      table: blog_posts
+      data_type: character varying
+      is_nullable: true
+  - collection: blog_posts
+    field: date_published
+    type: timestamp
+    meta:
+      interface: datetime
+    schema:
+      name: date_published
+      table: blog_posts
+      data_type: timestamp without time zone
+      is_nullable: true
+  - collection: blog_posts
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: blog_posts
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: blog_posts
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: blog_posts
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: tags
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: tags
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: tags
+    field: name
+    type: string
+    meta:
+      required: true
+      interface: input
+    schema:
+      name: name
+      table: tags
+      data_type: character varying
+      is_nullable: false
+  - collection: tags
+    field: slug
+    type: string
+    meta:
+      required: true
+      interface: input
+    schema:
+      name: slug
+      table: tags
+      data_type: character varying
+      is_nullable: false
+      is_unique: true
+  - collection: tags
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: tags
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: tags
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: tags
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: blog_posts_tags
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: blog_posts_tags
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: blog_posts_tags
+    field: blog_post_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+      required: true
+    schema:
+      name: blog_post_id
+      table: blog_posts_tags
+      data_type: uuid
+      is_nullable: false
+  - collection: blog_posts_tags
+    field: tag_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+      required: true
+    schema:
+      name: tag_id
+      table: blog_posts_tags
+      data_type: uuid
+      is_nullable: false
+  - collection: blog_posts_tags
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: blog_posts_tags
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: blog_posts_tags
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: blog_posts_tags
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: social_publish_logs
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: social_publish_logs
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: social_publish_logs
+    field: blog_post_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+      required: true
+    schema:
+      name: blog_post_id
+      table: social_publish_logs
+      data_type: uuid
+      is_nullable: false
+  - collection: social_publish_logs
+    field: platform
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: LinkedIn
+            value: linkedin
+          - text: Twitter
+            value: twitter
+          - text: Bluesky
+            value: bluesky
+    schema:
+      name: platform
+      table: social_publish_logs
+      data_type: character varying
+      is_nullable: false
+  - collection: social_publish_logs
+    field: status
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Unsent
+            value: unsent
+          - text: Sending
+            value: sending
+          - text: Sent
+            value: sent
+          - text: Failed
+            value: failed
+          - text: Outdated
+            value: outdated
+    schema:
+      name: status
+      table: social_publish_logs
+      data_type: character varying
+      default_value: unsent
+      is_nullable: false
+  - collection: social_publish_logs
+    field: draft_text
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: draft_text
+      table: social_publish_logs
+      data_type: text
+      is_nullable: true
+  - collection: social_publish_logs
+    field: content_hash_at_send
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: content_hash_at_send
+      table: social_publish_logs
+      data_type: character varying
+      is_nullable: true
+  - collection: social_publish_logs
+    field: sent_at
+    type: timestamp
+    meta:
+      interface: datetime
+    schema:
+      name: sent_at
+      table: social_publish_logs
+      data_type: timestamp without time zone
+      is_nullable: true
+  - collection: social_publish_logs
+    field: error_message
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: error_message
+      table: social_publish_logs
+      data_type: character varying
+      is_nullable: true
+  - collection: social_publish_logs
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: social_publish_logs
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: social_publish_logs
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: social_publish_logs
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: projects
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: projects
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: projects
+    field: title
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: title
+      table: projects
+      data_type: character varying
+      is_nullable: false
+  - collection: projects
+    field: slug
+    type: string
+    meta:
+      interface: input
+      required: true
+    schema:
+      name: slug
+      table: projects
+      data_type: character varying
+      is_nullable: false
+      is_unique: true
+  - collection: projects
+    field: description_markdown
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: description_markdown
+      table: projects
+      data_type: text
+      is_nullable: true
+  - collection: projects
+    field: short_description
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: short_description
+      table: projects
+      data_type: character varying
+      is_nullable: true
+  - collection: projects
+    field: is_featured
+    type: boolean
+    meta:
+      interface: boolean
+    schema:
+      name: is_featured
+      table: projects
+      data_type: boolean
+      default_value: false
+      is_nullable: false
+  - collection: projects
+    field: role
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: role
+      table: projects
+      data_type: character varying
+      is_nullable: true
+  - collection: projects
+    field: context_constraints
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: context_constraints
+      table: projects
+      data_type: text
+      is_nullable: true
+  - collection: projects
+    field: outcome_impact
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: outcome_impact
+      table: projects
+      data_type: text
+      is_nullable: true
+  - collection: projects
+    field: thumbnail
+    type: uuid
+    meta:
+      interface: file-image
+    schema:
+      name: thumbnail
+      table: projects
+      data_type: uuid
+      is_nullable: true
+  - collection: projects
+    field: demo_url
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: demo_url
+      table: projects
+      data_type: character varying
+      is_nullable: true
+  - collection: projects
+    field: repo_url
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: repo_url
+      table: projects
+      data_type: character varying
+      is_nullable: true
+  - collection: projects
+    field: sort_order
+    type: integer
+    meta:
+      interface: input
+    schema:
+      name: sort_order
+      table: projects
+      data_type: integer
+      is_nullable: true
+  - collection: projects
+    field: status
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Draft
+            value: draft
+          - text: Published
+            value: published
+    schema:
+      name: status
+      table: projects
+      data_type: character varying
+      default_value: draft
+      is_nullable: true
+  - collection: projects
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: projects
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: projects
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: projects
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: projects_tags
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: projects_tags
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: projects_tags
+    field: project_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+      required: true
+    schema:
+      name: project_id
+      table: projects_tags
+      data_type: uuid
+      is_nullable: false
+  - collection: projects_tags
+    field: tag_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+      required: true
+    schema:
+      name: tag_id
+      table: projects_tags
+      data_type: uuid
+      is_nullable: false
+  - collection: projects_tags
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: projects_tags
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: projects_tags
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: projects_tags
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: campaigns
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: campaigns
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: campaigns
+    field: name
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: name
+      table: campaigns
+      data_type: character varying
+      is_nullable: false
+  - collection: campaigns
+    field: slug
+    type: string
+    meta:
+      interface: input
+      required: true
+    schema:
+      name: slug
+      table: campaigns
+      data_type: character varying
+      is_nullable: false
+      is_unique: true
+  - collection: campaigns
+    field: description
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: description
+      table: campaigns
+      data_type: text
+      is_nullable: true
+  - collection: campaigns
+    field: status
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Active
+            value: active
+          - text: Completed
+            value: completed
+          - text: Archived
+            value: archived
+    schema:
+      name: status
+      table: campaigns
+      data_type: character varying
+      default_value: active
+      is_nullable: true
+  - collection: campaigns
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: campaigns
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: campaigns
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: campaigns
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: ttrpg_journals
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: ttrpg_journals
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: ttrpg_journals
+    field: campaign_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+    schema:
+      name: campaign_id
+      table: ttrpg_journals
+      data_type: uuid
+      is_nullable: true
+  - collection: ttrpg_journals
+    field: title
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: title
+      table: ttrpg_journals
+      data_type: character varying
+      is_nullable: false
+  - collection: ttrpg_journals
+    field: slug
+    type: string
+    meta:
+      interface: input
+      required: true
+    schema:
+      name: slug
+      table: ttrpg_journals
+      data_type: character varying
+      is_nullable: false
+      is_unique: true
+  - collection: ttrpg_journals
+    field: session_number
+    type: integer
+    meta:
+      interface: input
+    schema:
+      name: session_number
+      table: ttrpg_journals
+      data_type: integer
+      is_nullable: true
+  - collection: ttrpg_journals
+    field: body_markdown
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: body_markdown
+      table: ttrpg_journals
+      data_type: text
+      is_nullable: true
+  - collection: ttrpg_journals
+    field: excerpt
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: excerpt
+      table: ttrpg_journals
+      data_type: character varying
+      is_nullable: true
+  - collection: ttrpg_journals
+    field: session_date
+    type: timestamp
+    meta:
+      interface: datetime
+    schema:
+      name: session_date
+      table: ttrpg_journals
+      data_type: timestamp without time zone
+      is_nullable: true
+  - collection: ttrpg_journals
+    field: status
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Draft
+            value: draft
+          - text: Published
+            value: published
+    schema:
+      name: status
+      table: ttrpg_journals
+      data_type: character varying
+      default_value: draft
+      is_nullable: true
+  - collection: ttrpg_journals
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: ttrpg_journals
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: ttrpg_journals
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: ttrpg_journals
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: ttrpg_characters
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: ttrpg_characters
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: ttrpg_characters
+    field: campaign_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+    schema:
+      name: campaign_id
+      table: ttrpg_characters
+      data_type: uuid
+      is_nullable: true
+  - collection: ttrpg_characters
+    field: name
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: name
+      table: ttrpg_characters
+      data_type: character varying
+      is_nullable: false
+  - collection: ttrpg_characters
+    field: slug
+    type: string
+    meta:
+      interface: input
+      required: true
+    schema:
+      name: slug
+      table: ttrpg_characters
+      data_type: character varying
+      is_nullable: false
+      is_unique: true
+  - collection: ttrpg_characters
+    field: class_role
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: class_role
+      table: ttrpg_characters
+      data_type: character varying
+      is_nullable: true
+  - collection: ttrpg_characters
+    field: backstory_markdown
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: backstory_markdown
+      table: ttrpg_characters
+      data_type: text
+      is_nullable: true
+  - collection: ttrpg_characters
+    field: stats_overview
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: stats_overview
+      table: ttrpg_characters
+      data_type: text
+      is_nullable: true
+  - collection: ttrpg_characters
+    field: portrait
+    type: uuid
+    meta:
+      interface: file-image
+    schema:
+      name: portrait
+      table: ttrpg_characters
+      data_type: uuid
+      is_nullable: true
+  - collection: ttrpg_characters
+    field: status
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Draft
+            value: draft
+          - text: Published
+            value: published
+    schema:
+      name: status
+      table: ttrpg_characters
+      data_type: character varying
+      default_value: draft
+      is_nullable: true
+  - collection: ttrpg_characters
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: ttrpg_characters
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: ttrpg_characters
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: ttrpg_characters
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: ttrpg_lore
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: ttrpg_lore
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: ttrpg_lore
+    field: campaign_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+    schema:
+      name: campaign_id
+      table: ttrpg_lore
+      data_type: uuid
+      is_nullable: true
+  - collection: ttrpg_lore
+    field: title
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: title
+      table: ttrpg_lore
+      data_type: character varying
+      is_nullable: false
+  - collection: ttrpg_lore
+    field: slug
+    type: string
+    meta:
+      interface: input
+      required: true
+    schema:
+      name: slug
+      table: ttrpg_lore
+      data_type: character varying
+      is_nullable: false
+      is_unique: true
+  - collection: ttrpg_lore
+    field: category
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Faction
+            value: faction
+          - text: Location
+            value: location
+          - text: Timeline
+            value: timeline
+          - text: Event
+            value: event
+          - text: Item
+            value: item
+    schema:
+      name: category
+      table: ttrpg_lore
+      data_type: character varying
+      is_nullable: false
+  - collection: ttrpg_lore
+    field: body_markdown
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: body_markdown
+      table: ttrpg_lore
+      data_type: text
+      is_nullable: true
+  - collection: ttrpg_lore
+    field: status
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Draft
+            value: draft
+          - text: Published
+            value: published
+    schema:
+      name: status
+      table: ttrpg_lore
+      data_type: character varying
+      default_value: draft
+      is_nullable: true
+  - collection: ttrpg_lore
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: ttrpg_lore
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: ttrpg_lore
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: ttrpg_lore
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: ttrpg_homebrew
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: ttrpg_homebrew
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: ttrpg_homebrew
+    field: campaign_id
+    type: uuid
+    meta:
+      interface: select-dropdown-m2o
+    schema:
+      name: campaign_id
+      table: ttrpg_homebrew
+      data_type: uuid
+      is_nullable: true
+  - collection: ttrpg_homebrew
+    field: title
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: title
+      table: ttrpg_homebrew
+      data_type: character varying
+      is_nullable: false
+  - collection: ttrpg_homebrew
+    field: slug
+    type: string
+    meta:
+      interface: input
+      required: true
+    schema:
+      name: slug
+      table: ttrpg_homebrew
+      data_type: character varying
+      is_nullable: false
+      is_unique: true
+  - collection: ttrpg_homebrew
+    field: type
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Character Class
+            value: character_class
+          - text: Magic Item
+            value: magic_item
+          - text: Rule Variant
+            value: rule_variant
+          - text: Monster
+            value: monster
+          - text: Spell
+            value: spell
+    schema:
+      name: type
+      table: ttrpg_homebrew
+      data_type: character varying
+      is_nullable: false
+  - collection: ttrpg_homebrew
+    field: body_markdown
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: body_markdown
+      table: ttrpg_homebrew
+      data_type: text
+      is_nullable: true
+  - collection: ttrpg_homebrew
+    field: status
+    type: string
+    meta:
+      interface: select-dropdown
+      options:
+        choices:
+          - text: Draft
+            value: draft
+          - text: Published
+            value: published
+    schema:
+      name: status
+      table: ttrpg_homebrew
+      data_type: character varying
+      default_value: draft
+      is_nullable: true
+  - collection: ttrpg_homebrew
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: ttrpg_homebrew
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: ttrpg_homebrew
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: ttrpg_homebrew
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: career_entries
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: career_entries
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: career_entries
+    field: role
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: role
+      table: career_entries
+      data_type: character varying
+      is_nullable: false
+  - collection: career_entries
+    field: company
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: company
+      table: career_entries
+      data_type: character varying
+      is_nullable: false
+  - collection: career_entries
+    field: date_start
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: date_start
+      table: career_entries
+      data_type: character varying
+      is_nullable: false
+  - collection: career_entries
+    field: date_end
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: date_end
+      table: career_entries
+      data_type: character varying
+      is_nullable: true
+  - collection: career_entries
+    field: highlight
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: highlight
+      table: career_entries
+      data_type: character varying
+      is_nullable: true
+  - collection: career_entries
+    field: description_markdown
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: description_markdown
+      table: career_entries
+      data_type: text
+      is_nullable: true
+  - collection: career_entries
+    field: is_homepage_highlight
+    type: boolean
+    meta:
+      interface: boolean
+    schema:
+      name: is_homepage_highlight
+      table: career_entries
+      data_type: boolean
+      default_value: false
+      is_nullable: false
+  - collection: career_entries
+    field: sort_order
+    type: integer
+    meta:
+      interface: input
+    schema:
+      name: sort_order
+      table: career_entries
+      data_type: integer
+      is_nullable: true
+  - collection: career_entries
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: career_entries
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: career_entries
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: career_entries
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: testimonials
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: testimonials
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: testimonials
+    field: quote
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: quote
+      table: testimonials
+      data_type: text
+      is_nullable: false
+  - collection: testimonials
+    field: author_name
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: author_name
+      table: testimonials
+      data_type: character varying
+      is_nullable: false
+  - collection: testimonials
+    field: author_role
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: author_role
+      table: testimonials
+      data_type: character varying
+      is_nullable: true
+  - collection: testimonials
+    field: author_photo
+    type: uuid
+    meta:
+      interface: file-image
+    schema:
+      name: author_photo
+      table: testimonials
+      data_type: uuid
+      is_nullable: true
+  - collection: testimonials
+    field: is_homepage_featured
+    type: boolean
+    meta:
+      interface: boolean
+    schema:
+      name: is_homepage_featured
+      table: testimonials
+      data_type: boolean
+      default_value: false
+      is_nullable: false
+  - collection: testimonials
+    field: sort_order
+    type: integer
+    meta:
+      interface: input
+    schema:
+      name: sort_order
+      table: testimonials
+      data_type: integer
+      is_nullable: true
+  - collection: testimonials
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: testimonials
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: testimonials
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: testimonials
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: tech_stack_items
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: tech_stack_items
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: tech_stack_items
+    field: name
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: name
+      table: tech_stack_items
+      data_type: character varying
+      is_nullable: false
+  - collection: tech_stack_items
+    field: icon_slug
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: icon_slug
+      table: tech_stack_items
+      data_type: character varying
+      is_nullable: true
+  - collection: tech_stack_items
+    field: experience_years
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: experience_years
+      table: tech_stack_items
+      data_type: character varying
+      is_nullable: true
+  - collection: tech_stack_items
+    field: context
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: context
+      table: tech_stack_items
+      data_type: character varying
+      is_nullable: true
+  - collection: tech_stack_items
+    field: sort_order
+    type: integer
+    meta:
+      interface: input
+    schema:
+      name: sort_order
+      table: tech_stack_items
+      data_type: integer
+      is_nullable: true
+  - collection: tech_stack_items
+    field: date_created
+    type: timestamp
+    meta:
+      special:
+        - date-created
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_created
+      table: tech_stack_items
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: tech_stack_items
+    field: date_updated
+    type: timestamp
+    meta:
+      special:
+        - date-updated
+      readonly: true
+      hidden: true
+      interface: datetime
+    schema:
+      name: date_updated
+      table: tech_stack_items
+      data_type: timestamp without time zone
+      default_value: CURRENT_TIMESTAMP
+      is_nullable: true
+  - collection: site_settings
+    field: id
+    type: uuid
+    meta:
+      hidden: true
+      readonly: true
+      interface: input
+    schema:
+      name: id
+      table: site_settings
+      data_type: uuid
+      is_nullable: false
+      is_primary_key: true
+      default_value: null
+  - collection: site_settings
+    field: full_name
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: full_name
+      table: site_settings
+      data_type: character varying
+      is_nullable: true
+  - collection: site_settings
+    field: tagline
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: tagline
+      table: site_settings
+      data_type: character varying
+      is_nullable: true
+  - collection: site_settings
+    field: bio_markdown
+    type: text
+    meta:
+      interface: input-multiline
+    schema:
+      name: bio_markdown
+      table: site_settings
+      data_type: text
+      is_nullable: true
+  - collection: site_settings
+    field: avatar
+    type: uuid
+    meta:
+      interface: file-image
+    schema:
+      name: avatar
+      table: site_settings
+      data_type: uuid
+      is_nullable: true
+  - collection: site_settings
+    field: resume_pdf
+    type: uuid
+    meta:
+      interface: file
+    schema:
+      name: resume_pdf
+      table: site_settings
+      data_type: uuid
+      is_nullable: true
+  - collection: site_settings
+    field: github_username
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: github_username
+      table: site_settings
+      data_type: character varying
+      is_nullable: true
+  - collection: site_settings
+    field: linkedin_url
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: linkedin_url
+      table: site_settings
+      data_type: character varying
+      is_nullable: true
+  - collection: site_settings
+    field: twitter_url
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: twitter_url
+      table: site_settings
+      data_type: character varying
+      is_nullable: true
+  - collection: site_settings
+    field: bluesky_handle
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: bluesky_handle
+      table: site_settings
+      data_type: character varying
+      is_nullable: true
+  - collection: site_settings
+    field: email
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: email
+      table: site_settings
+      data_type: character varying
+      is_nullable: true
+relations:
+  - collection: blog_posts
+    field: featured_image
+    related_collection: directus_files
+    meta:
+      many_collection: blog_posts
+      many_field: featured_image
+      one_collection: directus_files
+      one_deselect_action: nullify
+    schema:
+      table: blog_posts
+      column: featured_image
+      foreign_key_table: directus_files
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: blog_posts_tags
+    field: blog_post_id
+    related_collection: blog_posts
+    meta:
+      many_collection: blog_posts_tags
+      many_field: blog_post_id
+      one_collection: blog_posts
+      one_deselect_action: delete
+    schema:
+      table: blog_posts_tags
+      column: blog_post_id
+      foreign_key_table: blog_posts
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: CASCADE
+  - collection: blog_posts_tags
+    field: tag_id
+    related_collection: tags
+    meta:
+      many_collection: blog_posts_tags
+      many_field: tag_id
+      one_collection: tags
+      one_deselect_action: delete
+    schema:
+      table: blog_posts_tags
+      column: tag_id
+      foreign_key_table: tags
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: CASCADE
+  - collection: social_publish_logs
+    field: blog_post_id
+    related_collection: blog_posts
+    meta:
+      many_collection: social_publish_logs
+      many_field: blog_post_id
+      one_collection: blog_posts
+      one_deselect_action: delete
+    schema:
+      table: social_publish_logs
+      column: blog_post_id
+      foreign_key_table: blog_posts
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: CASCADE
+  - collection: projects
+    field: thumbnail
+    related_collection: directus_files
+    meta:
+      many_collection: projects
+      many_field: thumbnail
+      one_collection: directus_files
+      one_deselect_action: nullify
+    schema:
+      table: projects
+      column: thumbnail
+      foreign_key_table: directus_files
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: projects_tags
+    field: project_id
+    related_collection: projects
+    meta:
+      many_collection: projects_tags
+      many_field: project_id
+      one_collection: projects
+      one_deselect_action: delete
+    schema:
+      table: projects_tags
+      column: project_id
+      foreign_key_table: projects
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: CASCADE
+  - collection: projects_tags
+    field: tag_id
+    related_collection: tags
+    meta:
+      many_collection: projects_tags
+      many_field: tag_id
+      one_collection: tags
+      one_deselect_action: delete
+    schema:
+      table: projects_tags
+      column: tag_id
+      foreign_key_table: tags
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: CASCADE
+  - collection: ttrpg_journals
+    field: campaign_id
+    related_collection: campaigns
+    meta:
+      many_collection: ttrpg_journals
+      many_field: campaign_id
+      one_collection: campaigns
+      one_deselect_action: nullify
+    schema:
+      table: ttrpg_journals
+      column: campaign_id
+      foreign_key_table: campaigns
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: ttrpg_characters
+    field: campaign_id
+    related_collection: campaigns
+    meta:
+      many_collection: ttrpg_characters
+      many_field: campaign_id
+      one_collection: campaigns
+      one_deselect_action: nullify
+    schema:
+      table: ttrpg_characters
+      column: campaign_id
+      foreign_key_table: campaigns
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: ttrpg_characters
+    field: portrait
+    related_collection: directus_files
+    meta:
+      many_collection: ttrpg_characters
+      many_field: portrait
+      one_collection: directus_files
+      one_deselect_action: nullify
+    schema:
+      table: ttrpg_characters
+      column: portrait
+      foreign_key_table: directus_files
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: ttrpg_lore
+    field: campaign_id
+    related_collection: campaigns
+    meta:
+      many_collection: ttrpg_lore
+      many_field: campaign_id
+      one_collection: campaigns
+      one_deselect_action: nullify
+    schema:
+      table: ttrpg_lore
+      column: campaign_id
+      foreign_key_table: campaigns
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: ttrpg_homebrew
+    field: campaign_id
+    related_collection: campaigns
+    meta:
+      many_collection: ttrpg_homebrew
+      many_field: campaign_id
+      one_collection: campaigns
+      one_deselect_action: nullify
+    schema:
+      table: ttrpg_homebrew
+      column: campaign_id
+      foreign_key_table: campaigns
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: testimonials
+    field: author_photo
+    related_collection: directus_files
+    meta:
+      many_collection: testimonials
+      many_field: author_photo
+      one_collection: directus_files
+      one_deselect_action: nullify
+    schema:
+      table: testimonials
+      column: author_photo
+      foreign_key_table: directus_files
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: site_settings
+    field: avatar
+    related_collection: directus_files
+    meta:
+      many_collection: site_settings
+      many_field: avatar
+      one_collection: directus_files
+      one_deselect_action: nullify
+    schema:
+      table: site_settings
+      column: avatar
+      foreign_key_table: directus_files
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL
+  - collection: site_settings
+    field: resume_pdf
+    related_collection: directus_files
+    meta:
+      many_collection: site_settings
+      many_field: resume_pdf
+      one_collection: directus_files
+      one_deselect_action: nullify
+    schema:
+      table: site_settings
+      column: resume_pdf
+      foreign_key_table: directus_files
+      foreign_key_column: id
+      on_update: NO ACTION
+      on_delete: SET NULL

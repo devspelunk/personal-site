@@ -29,6 +29,8 @@ services:
       DB_DATABASE: ${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
       DIRECTUS_TOKEN: ${DIRECTUS_TOKEN}
       REVALIDATION_SECRET: ${REVALIDATION_SECRET}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
@@ -42,11 +44,37 @@ services:
     volumes:
       - directus_uploads:/directus/uploads
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8055/server/health"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8055/server/health"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks:
+      - personal-site-network
+
+  directus-bootstrap:
+    image: directus/directus:10
+    depends_on:
+      directus:
+        condition: service_healthy
+    environment:
+      SECRET: ${DIRECTUS_SECRET}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DIRECTUS_TOKEN: ${DIRECTUS_TOKEN}
+      REVALIDATION_SECRET: ${REVALIDATION_SECRET}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      DIRECTUS_INTERNAL_URL: http://directus:8055
+      DIRECTUS_ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL}
+      DIRECTUS_ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
+    volumes:
+      - ./directus:/directus/config:ro
+    command: sh /directus/config/bootstrap.sh
+    restart: "no"
     networks:
       - personal-site-network
 

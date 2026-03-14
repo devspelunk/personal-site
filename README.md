@@ -27,6 +27,7 @@
 - Umami: `http://localhost:3001`
 
 The local override file is applied automatically by Docker Compose. `Caddyfile.dev` proxies plain HTTP traffic on `:80`, and if you want local subdomain routing you can add matching entries in `/etc/hosts`.
+`NEXT_PUBLIC_DIRECTUS_URL` is used by the frontend, while Directus bootstrap uses an internal API URL (`DIRECTUS_INTERNAL_URL`, defaulting to `http://directus:8055` in Docker).
 
 ## Production Deployment
 

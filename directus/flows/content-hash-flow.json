@@ -1,0 +1,110 @@
+{
+  "flow": {
+    "name": "Blog Post Content Hash Sync",
+    "icon": "fingerprint",
+    "color": "#10B981",
+    "description": "Keeps blog_posts.content_hash in sync with title/body changes.",
+    "status": "active",
+    "trigger": "event",
+    "accountability": "all",
+    "options": {
+      "type": "action",
+      "scope": [
+        "items.create",
+        "items.update"
+      ],
+      "collections": [
+        "blog_posts"
+      ]
+    }
+  },
+  "operations": [
+    {
+      "name": "Prepare Content Hash Context",
+      "key": "prepare_content_hash_context",
+      "type": "script",
+      "position_x": 19,
+      "position_y": 1,
+      "options": {
+        "code": "module.exports = function (data) {\n  const trigger = data.$trigger || {};\n  const payload = trigger.payload || {};\n  const keys = trigger.keys || [];\n  const event = trigger.event || \"\";\n\n  const hasOwn = (key) => Object.prototype.hasOwnProperty.call(payload, key);\n  const titleChanged = hasOwn(\"title\");\n  const bodyChanged = hasOwn(\"body_markdown\");\n  const shouldProcess = event === \"items.create\" || titleChanged || bodyChanged;\n\n  return {\n    should_process: shouldProcess,\n    item_id: payload.id ?? keys[0] ?? null,\n    title_override: titleChanged ? payload.title : null,\n    body_override: bodyChanged ? payload.body_markdown : null\n  };\n};"
+      },
+      "resolve": "content_hash_should_process",
+      "reject": null
+    },
+    {
+      "name": "Should Process Hash?",
+      "key": "content_hash_should_process",
+      "type": "condition",
+      "position_x": 38,
+      "position_y": 1,
+      "options": {
+        "filter": {
+          "prepare_content_hash_context": {
+            "should_process": {
+              "_eq": true
+            }
+          }
+        }
+      },
+      "resolve": "read_current_blog_post",
+      "reject": null
+    },
+    {
+      "name": "Read Current Blog Post",
+      "key": "read_current_blog_post",
+      "type": "read",
+      "position_x": 57,
+      "position_y": 1,
+      "options": {
+        "permissions": "$full",
+        "collection": "blog_posts",
+        "ids": [
+          "{{$prepare_content_hash_context.item_id}}"
+        ],
+        "query": {
+          "fields": [
+            "id",
+            "title",
+            "body_markdown"
+          ],
+          "limit": 1
+        },
+        "emitEvents": false
+      },
+      "resolve": "compute_content_hash",
+      "reject": null
+    },
+    {
+      "name": "Compute Content Hash",
+      "key": "compute_content_hash",
+      "type": "script",
+      "position_x": 76,
+      "position_y": 1,
+      "options": {
+        "code": "module.exports = function (data) {\n  const context = data.prepare_content_hash_context || {};\n  const currentRow = Array.isArray(data.read_current_blog_post) ? data.read_current_blog_post[0] || {} : {};\n\n  const title = context.title_override !== null ? context.title_override : currentRow.title ?? \"\";\n  const bodyMarkdown = context.body_override !== null ? context.body_override : currentRow.body_markdown ?? \"\";\n\n  const input = `${title}\\n${bodyMarkdown}`;\n\n  let hash = 2166136261;\n  for (let i = 0; i < input.length; i += 1) {\n    hash ^= input.charCodeAt(i);\n    hash = (hash * 16777619) >>> 0;\n  }\n\n  const contentHash = hash.toString(16).padStart(8, \"0\");\n\n  return {\n    item_id: context.item_id,\n    content_hash: contentHash\n  };\n};"
+      },
+      "resolve": "persist_content_hash",
+      "reject": null
+    },
+    {
+      "name": "Persist Content Hash",
+      "key": "persist_content_hash",
+      "type": "update",
+      "position_x": 95,
+      "position_y": 1,
+      "options": {
+        "permissions": "$full",
+        "collection": "blog_posts",
+        "ids": [
+          "{{$compute_content_hash.item_id}}"
+        ],
+        "payload": {
+          "content_hash": "{{$compute_content_hash.content_hash}}"
+        },
+        "emitEvents": false
+      },
+      "resolve": null,
+      "reject": null
+    }
+  ]
+}

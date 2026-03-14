@@ -1,0 +1,85 @@
+{
+  "flow": {
+    "name": "Content Revalidation Webhook",
+    "icon": "sync",
+    "color": "#3B82F6",
+    "description": "Revalidates Next.js pages when content mutates.",
+    "status": "active",
+    "trigger": "event",
+    "accountability": "all",
+    "options": {
+      "type": "action",
+      "scope": [
+        "items.create",
+        "items.update",
+        "items.delete"
+      ],
+      "collections": [
+        "blog_posts",
+        "projects",
+        "ttrpg_journals",
+        "ttrpg_characters",
+        "ttrpg_lore",
+        "ttrpg_homebrew",
+        "career_entries",
+        "testimonials",
+        "tech_stack_items",
+        "site_settings"
+      ]
+    }
+  },
+  "operations": [
+    {
+      "name": "Derive Revalidation Context",
+      "key": "derive_revalidation_context",
+      "type": "script",
+      "position_x": 19,
+      "position_y": 1,
+      "options": {
+        "code": "module.exports = function (data) {\n  const trigger = data.$trigger || {};\n  const payload = trigger.payload || {};\n  const collection = trigger.collection || \"\";\n  const event = trigger.event || \"\";\n\n  const alwaysCollections = new Set([\n    \"career_entries\",\n    \"testimonials\",\n    \"tech_stack_items\",\n    \"site_settings\"\n  ]);\n\n  const publishSensitiveCollections = new Set([\n    \"blog_posts\",\n    \"projects\",\n    \"ttrpg_journals\",\n    \"ttrpg_characters\",\n    \"ttrpg_lore\",\n    \"ttrpg_homebrew\"\n  ]);\n\n  const hasOwn = (key) => Object.prototype.hasOwnProperty.call(payload, key);\n  const slugChanged = hasOwn(\"slug\");\n  const statusChanged = hasOwn(\"status\");\n\n  let shouldRevalidate = false;\n\n  if (alwaysCollections.has(collection)) {\n    shouldRevalidate = true;\n  } else if (publishSensitiveCollections.has(collection)) {\n    if (event === \"items.create\") {\n      shouldRevalidate = payload.status === \"published\";\n    } else if (event === \"items.update\") {\n      shouldRevalidate = slugChanged || statusChanged;\n    } else {\n      shouldRevalidate = false;\n    }\n  } else {\n    shouldRevalidate = true;\n  }\n\n  const previousSlug = slugChanged\n    ? payload.slug_previous ?? payload.previous_slug ?? null\n    : null;\n\n  return {\n    should_revalidate: shouldRevalidate,\n    collection,\n    event_type: event,\n    slug: payload.slug ?? null,\n    previous_slug: previousSlug\n  };\n};"
+      },
+      "resolve": "should_revalidate_condition",
+      "reject": null
+    },
+    {
+      "name": "Should Revalidate?",
+      "key": "should_revalidate_condition",
+      "type": "condition",
+      "position_x": 38,
+      "position_y": 1,
+      "options": {
+        "filter": {
+          "derive_revalidation_context": {
+            "should_revalidate": {
+              "_eq": true
+            }
+          }
+        }
+      },
+      "resolve": "revalidate_http",
+      "reject": null
+    },
+    {
+      "name": "POST /api/revalidate",
+      "key": "revalidate_http",
+      "type": "request",
+      "position_x": 57,
+      "position_y": 1,
+      "options": {
+        "method": "POST",
+        "url": "{{NEXT_PUBLIC_SITE_URL}}/api/revalidate",
+        "headers": [
+          {
+            "header": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": "{\n  \"secret\": \"{{REVALIDATION_SECRET}}\",\n  \"collection\": \"{{$derive_revalidation_context.collection}}\",\n  \"slug\": \"{{$derive_revalidation_context.slug}}\",\n  \"previous_slug\": \"{{$derive_revalidation_context.previous_slug}}\",\n  \"event_type\": \"{{$derive_revalidation_context.event_type}}\"\n}",
+        "body_type": "raw",
+        "raw_body": true
+      },
+      "resolve": null,
+      "reject": null
+    }
+  ]
+}
