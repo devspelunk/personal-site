@@ -1,0 +1,32 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  directus:
+    ports:
+      - "8055:8055"
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: deps
+    command: npm run dev
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+
+  umami:
+    ports:
+      - "3001:3001"
+
+  caddy:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data

@@ -1,0 +1,13 @@
+# Replace yourdomain.com with your actual domain before deploying to production.
+
+yourdomain.com {
+    reverse_proxy nextjs:3000
+}
+
+cms.yourdomain.com {
+    reverse_proxy directus:8055
+}
+
+analytics.yourdomain.com {
+    reverse_proxy umami:3001
+}

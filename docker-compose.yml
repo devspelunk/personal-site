@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - personal-site-network
+
+  directus:
+    image: directus/directus:10
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SECRET: ${DIRECTUS_SECRET}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DIRECTUS_TOKEN: ${DIRECTUS_TOKEN}
+      REVALIDATION_SECRET: ${REVALIDATION_SECRET}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      LINKEDIN_ACCESS_TOKEN: ${LINKEDIN_ACCESS_TOKEN}
+      TWITTER_API_KEY: ${TWITTER_API_KEY}
+      TWITTER_API_SECRET: ${TWITTER_API_SECRET}
+      TWITTER_ACCESS_TOKEN: ${TWITTER_ACCESS_TOKEN}
+      TWITTER_ACCESS_TOKEN_SECRET: ${TWITTER_ACCESS_TOKEN_SECRET}
+      BLUESKY_IDENTIFIER: ${BLUESKY_IDENTIFIER}
+      BLUESKY_APP_PASSWORD: ${BLUESKY_APP_PASSWORD}
+    volumes:
+      - directus_uploads:/directus/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8055/server/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - personal-site-network
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      directus:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      NEXT_PUBLIC_DIRECTUS_URL: ${NEXT_PUBLIC_DIRECTUS_URL}
+      NEXT_PUBLIC_FEATURE_MUSIC: ${NEXT_PUBLIC_FEATURE_MUSIC}
+      DIRECTUS_TOKEN: ${DIRECTUS_TOKEN}
+      REVALIDATION_SECRET: ${REVALIDATION_SECRET}
+    networks:
+      - personal-site-network
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${UMAMI_DATABASE_URL}
+      APP_SECRET: ${UMAMI_APP_SECRET}
+    networks:
+      - personal-site-network
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - nextjs
+      - directus
+      - umami
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    networks:
+      - personal-site-network
+
+networks:
+  personal-site-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  directus_uploads:
+  caddy_data:
