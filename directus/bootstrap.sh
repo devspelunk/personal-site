@@ -193,10 +193,74 @@ node -e '
     return flows?.[0] ?? null;
   };
 
-  const deleteFlowOperations = async (flowId) => {
+  const listFlowOperations = async (flowId) => {
     const operations = await request("GET", `/operations?filter[flow][_eq]=${flowId}&limit=200`);
+    return Array.isArray(operations) ? operations : [];
+  };
+
+  const deleteFlowOperations = async (flowId) => {
+    const operations = await listFlowOperations(flowId);
     for (const operation of operations ?? []) {
       await request("DELETE", `/operations/${operation.id}`);
+    }
+  };
+
+  const createFlowOperationsFromDefinition = async (flowId, operations) => {
+    const opIdByKey = {};
+
+    for (let i = 0; i < operations.length; i += 1) {
+      const operation = operations[i];
+      const { resolve, reject, ...rest } = operation;
+      const payload = {
+        ...rest,
+        flow: flowId,
+        trigger: i === 0 ? "operation" : rest.trigger ?? null,
+        resolve: null,
+        reject: null
+      };
+
+      const created = await request("POST", "/operations", payload);
+      opIdByKey[operation.key] = created.id;
+    }
+
+    for (const operation of operations) {
+      if (!operation.key || !opIdByKey[operation.key]) continue;
+      await request("PATCH", `/operations/${opIdByKey[operation.key]}`, {
+        resolve: operation.resolve ? opIdByKey[operation.resolve] ?? null : null,
+        reject: operation.reject ? opIdByKey[operation.reject] ?? null : null
+      });
+    }
+  };
+
+  const restoreFlowOperations = async (flowId, snapshotOperations) => {
+    const restoredIdByOriginalId = {};
+
+    for (const operation of snapshotOperations) {
+      const payload = {
+        name: operation.name,
+        key: operation.key,
+        type: operation.type,
+        position_x: operation.position_x,
+        position_y: operation.position_y,
+        options: operation.options ?? null,
+        trigger: operation.trigger ?? null,
+        flow: flowId,
+        resolve: null,
+        reject: null
+      };
+
+      const created = await request("POST", "/operations", payload);
+      restoredIdByOriginalId[operation.id] = created.id;
+    }
+
+    for (const operation of snapshotOperations) {
+      const restoredId = restoredIdByOriginalId[operation.id];
+      if (!restoredId) continue;
+
+      await request("PATCH", `/operations/${restoredId}`, {
+        resolve: operation.resolve ? restoredIdByOriginalId[operation.resolve] ?? null : null,
+        reject: operation.reject ? restoredIdByOriginalId[operation.reject] ?? null : null
+      });
     }
   };
 
@@ -218,30 +282,27 @@ node -e '
       console.log(`Created flow: ${flowPayload.name}`);
     }
 
-    await deleteFlowOperations(flow.id);
+    const existingOperationsSnapshot = await listFlowOperations(flow.id);
 
-    const opIdByKey = {};
-    for (let i = 0; i < operations.length; i += 1) {
-      const operation = operations[i];
-      const { resolve, reject, ...rest } = operation;
-      const payload = {
-        ...rest,
-        flow: flow.id,
-        trigger: i === 0 ? "operation" : rest.trigger ?? null,
-        resolve: null,
-        reject: null
-      };
+    try {
+      await deleteFlowOperations(flow.id);
+      await createFlowOperationsFromDefinition(flow.id, operations);
+    } catch (replaceError) {
+      process.stderr.write(
+        `Replacing operations failed for flow "${flowPayload.name}". Attempting restore from snapshot.\n`
+      );
 
-      const created = await request("POST", "/operations", payload);
-      opIdByKey[operation.key] = created.id;
-    }
+      try {
+        await deleteFlowOperations(flow.id);
+        await restoreFlowOperations(flow.id, existingOperationsSnapshot);
+      } catch (restoreError) {
+        throw new Error(
+          `Flow operation replace failed and restore failed for "${flowPayload.name}". ` +
+            `Replace error: ${String(replaceError)} | Restore error: ${String(restoreError)}`
+        );
+      }
 
-    for (const operation of operations) {
-      if (!operation.key || !opIdByKey[operation.key]) continue;
-      await request("PATCH", `/operations/${opIdByKey[operation.key]}`, {
-        resolve: operation.resolve ? opIdByKey[operation.resolve] ?? null : null,
-        reject: operation.reject ? opIdByKey[operation.reject] ?? null : null
-      });
+      throw replaceError;
     }
   };
 
