@@ -12,7 +12,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
       target: deps
-    command: npm run dev
+    command: sh -c "corepack enable pnpm && pnpm dev"
     volumes:
       - ./:/app
       - /app/node_modules
