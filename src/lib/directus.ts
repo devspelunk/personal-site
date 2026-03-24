@@ -23,3 +23,5 @@ export const createDirectusServerClient = () => {
     .with(staticToken(token))
     .with(rest())
 }
+
+export { getAssetUrl } from "@/lib/assets"

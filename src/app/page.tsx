@@ -1,3 +1,134 @@
-export default function HomePage() {
-  return <section className="mx-auto w-full max-w-6xl px-4 py-16" />
+import { readItems, readSingleton } from "@directus/sdk"
+import readingTime from "reading-time"
+
+import { CareerHighlights } from "@/components/homepage/CareerHighlights"
+import { FeaturedProjects } from "@/components/homepage/FeaturedProjects"
+import { GitHubHeatmap } from "@/components/homepage/GitHubHeatmap"
+import { HeroCodeAnimation } from "@/components/homepage/HeroCodeAnimation"
+import { InteractiveTechStack } from "@/components/homepage/InteractiveTechStack"
+import { LatestBlogPosts } from "@/components/homepage/LatestBlogPosts"
+import { Testimonials } from "@/components/homepage/Testimonials"
+import { createDirectusServerClient } from "@/lib/directus"
+import { fetchGitHubContributions } from "@/lib/github"
+
+export const revalidate = 3600
+
+export default async function HomePage() {
+  const client = createDirectusServerClient()
+
+  const [
+    siteSettings,
+    projects,
+    careerEntries,
+    blogPosts,
+    techStackItems,
+    testimonials,
+  ] = await Promise.all([
+    client.request(readSingleton("site_settings")),
+    client.request(
+      readItems("projects", {
+        filter: { is_featured: { _eq: true }, status: { _eq: "published" } },
+        fields: [
+          "id",
+          "slug",
+          "title",
+          "short_description",
+          "thumbnail",
+          { projects_tags: [{ tag_id: ["id", "name"] }] },
+        ],
+        limit: 3,
+      }),
+    ),
+    client.request(
+      readItems("career_entries", {
+        filter: { is_homepage_highlight: { _eq: true } },
+        sort: ["sort_order"],
+      }),
+    ),
+    client.request(
+      readItems("blog_posts", {
+        filter: { status: { _eq: "published" } },
+        sort: ["-date_published"],
+        limit: 3,
+        fields: [
+          "id",
+          "slug",
+          "title",
+          "excerpt",
+          "date_published",
+          "body_markdown",
+          { blog_posts_tags: [{ tag_id: ["id", "name"] }] },
+        ],
+      }),
+    ),
+    client.request(
+      readItems("tech_stack_items", {
+        sort: ["sort_order"],
+      }),
+    ),
+    client.request(
+      readItems("testimonials", {
+        filter: { is_homepage_featured: { _eq: true } },
+        sort: ["sort_order"],
+      }),
+    ),
+  ])
+
+  const blogPostsWithReadTime = blogPosts.map(
+    ({ body_markdown, ...post }) => ({
+      ...post,
+      readTime: body_markdown
+        ? Math.ceil(readingTime(body_markdown).minutes)
+        : null,
+    }),
+  )
+
+  const contributions = siteSettings.github_username
+    ? await fetchGitHubContributions(siteSettings.github_username)
+    : []
+
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4">
+      <section className="py-12">
+        <HeroCodeAnimation
+          fullName={siteSettings.full_name ?? "Engineer"}
+          tagline={siteSettings.tagline ?? "Building things that matter."}
+        />
+      </section>
+
+      <section className="border-t border-border py-12">
+        <FeaturedProjects projects={projects} />
+      </section>
+
+      {contributions.length > 0 && (
+        <section className="border-t border-border py-12">
+          <GitHubHeatmap contributions={contributions} />
+        </section>
+      )}
+
+      {careerEntries.length > 0 && (
+        <section className="border-t border-border py-12">
+          <CareerHighlights entries={careerEntries} />
+        </section>
+      )}
+
+      {blogPostsWithReadTime.length > 0 && (
+        <section className="border-t border-border py-12">
+          <LatestBlogPosts posts={blogPostsWithReadTime} />
+        </section>
+      )}
+
+      {techStackItems.length > 0 && (
+        <section className="border-t border-border py-12">
+          <InteractiveTechStack items={techStackItems} />
+        </section>
+      )}
+
+      {testimonials.length > 0 && (
+        <section className="border-t border-border py-12">
+          <Testimonials testimonials={testimonials} />
+        </section>
+      )}
+    </div>
+  )
 }
