@@ -35,6 +35,8 @@ The local override file is applied automatically by Docker Compose. `Caddyfile.d
 
 For faster iteration you can run Next.js natively while keeping the backing services in Docker.
 
+Use [pnpm](https://pnpm.io/) for installs and scripts (`corepack enable pnpm` if needed).
+
 1. If you haven't already, copy and fill in the base env file:
 
    ```bash
@@ -47,19 +49,25 @@ For faster iteration you can run Next.js natively while keeping the backing serv
    cp .env.development.local.example .env.development.local
    ```
 
-3. Start the backing services (Postgres, Directus):
+3. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+4. Start the backing services (Postgres, Directus):
 
    ```bash
    pnpm dev:services
    ```
 
-4. Start Next.js locally:
+5. Start Next.js locally:
 
    ```bash
    pnpm dev
    ```
 
-5. Access the services:
+6. Access the services:
 
 - Next.js: `http://localhost:3000`
 - Directus admin: `http://localhost:8055`

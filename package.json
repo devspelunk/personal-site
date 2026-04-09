@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "private": true,
+  "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:services": "docker compose up -d postgres directus directus-bootstrap",

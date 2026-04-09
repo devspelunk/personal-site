@@ -13,6 +13,25 @@ import { fetchGitHubContributions } from "@/lib/github"
 
 export const revalidate = 3600
 
+type FeaturedProjectRow = {
+  id: string
+  slug: string
+  title: string
+  short_description: string | null
+  thumbnail: string | null
+  projects_tags?: { tag_id: { id: string; name: string } }[]
+}
+
+type HomeBlogPostRow = {
+  id: string
+  slug: string
+  title: string
+  excerpt: string | null
+  date_published: string | null
+  body_markdown: string | null
+  blog_posts_tags?: { tag_id: { id: string; name: string } }[]
+}
+
 export default async function HomePage() {
   const client = createDirectusServerClient()
 
@@ -37,7 +56,7 @@ export default async function HomePage() {
           { projects_tags: [{ tag_id: ["id", "name"] }] },
         ],
         limit: 3,
-      })
+      } as never)
     ),
     client.request(
       readItems("career_entries", {
@@ -59,7 +78,7 @@ export default async function HomePage() {
           "body_markdown",
           { blog_posts_tags: [{ tag_id: ["id", "name"] }] },
         ],
-      })
+      } as never)
     ),
     client.request(
       readItems("tech_stack_items", {
@@ -74,12 +93,17 @@ export default async function HomePage() {
     ),
   ])
 
-  const blogPostsWithReadTime = blogPosts.map(({ body_markdown, ...post }) => ({
-    ...post,
-    readTime: body_markdown
-      ? Math.ceil(readingTime(body_markdown).minutes)
-      : null,
-  }))
+  const featuredProjects = projects as FeaturedProjectRow[]
+  const latestBlogRows = blogPosts as HomeBlogPostRow[]
+
+  const blogPostsWithReadTime = latestBlogRows.map(
+    ({ body_markdown, ...post }) => ({
+      ...post,
+      readTime: body_markdown
+        ? Math.ceil(readingTime(body_markdown).minutes)
+        : null,
+    })
+  )
 
   const contributions = siteSettings.github_username
     ? await fetchGitHubContributions(siteSettings.github_username)
@@ -99,9 +123,9 @@ export default async function HomePage() {
         />
       </section>
 
-      {projects.length > 0 && (
+      {featuredProjects.length > 0 && (
         <section className="border-t border-border py-12">
-          <FeaturedProjects projects={projects} />
+          <FeaturedProjects projects={featuredProjects} />
         </section>
       )}
 

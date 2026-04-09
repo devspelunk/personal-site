@@ -1,11 +1,18 @@
 export const fadeIn = {
   initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } },
+  animate: {
+    opacity: 1,
+    transition: { duration: 0.2, ease: "easeOut" as const },
+  },
 }
 
 export const slideUp = {
   initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" as const },
+  },
 }
 
 export const staggerChildren = {
@@ -19,5 +26,9 @@ export const staggerChildren = {
 
 export const staggerItem = {
   initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" } },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.2, ease: "easeOut" as const },
+  },
 }

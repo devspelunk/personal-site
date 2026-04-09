@@ -4,6 +4,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 
 import { staggerChildren, staggerItem } from "@/lib/animations"
+import { formatDate } from "@/lib/utils"
 
 import { SectionHeading } from "./SectionHeading"
 
@@ -16,13 +17,6 @@ interface BlogPostPreview {
   readTime: number | null
   blog_posts_tags?: { tag_id: { id: string; name: string } }[]
 }
-
-const formatDate = (date: string) =>
-  new Date(date).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
 
 export const LatestBlogPosts = ({ posts }: { posts: BlogPostPreview[] }) => (
   <div>
