@@ -37,13 +37,13 @@ export default async function HomePage() {
           { projects_tags: [{ tag_id: ["id", "name"] }] },
         ],
         limit: 3,
-      }),
+      })
     ),
     client.request(
       readItems("career_entries", {
         filter: { is_homepage_highlight: { _eq: true } },
         sort: ["sort_order"],
-      }),
+      })
     ),
     client.request(
       readItems("blog_posts", {
@@ -59,29 +59,27 @@ export default async function HomePage() {
           "body_markdown",
           { blog_posts_tags: [{ tag_id: ["id", "name"] }] },
         ],
-      }),
+      })
     ),
     client.request(
       readItems("tech_stack_items", {
         sort: ["sort_order"],
-      }),
+      })
     ),
     client.request(
       readItems("testimonials", {
         filter: { is_homepage_featured: { _eq: true } },
         sort: ["sort_order"],
-      }),
+      })
     ),
   ])
 
-  const blogPostsWithReadTime = blogPosts.map(
-    ({ body_markdown, ...post }) => ({
-      ...post,
-      readTime: body_markdown
-        ? Math.ceil(readingTime(body_markdown).minutes)
-        : null,
-    }),
-  )
+  const blogPostsWithReadTime = blogPosts.map(({ body_markdown, ...post }) => ({
+    ...post,
+    readTime: body_markdown
+      ? Math.ceil(readingTime(body_markdown).minutes)
+      : null,
+  }))
 
   const contributions = siteSettings.github_username
     ? await fetchGitHubContributions(siteSettings.github_username)
@@ -93,12 +91,19 @@ export default async function HomePage() {
         <HeroCodeAnimation
           fullName={siteSettings.full_name ?? "Engineer"}
           tagline={siteSettings.tagline ?? "Building things that matter."}
+          role={
+            siteSettings.role?.trim()
+              ? siteSettings.role.trim()
+              : "Full-Stack Engineer"
+          }
         />
       </section>
 
-      <section className="border-t border-border py-12">
-        <FeaturedProjects projects={projects} />
-      </section>
+      {projects.length > 0 && (
+        <section className="border-t border-border py-12">
+          <FeaturedProjects projects={projects} />
+        </section>
+      )}
 
       {contributions.length > 0 && (
         <section className="border-t border-border py-12">

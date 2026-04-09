@@ -1,9 +1,11 @@
 "use client"
 
+import Link from "next/link"
 import { motion } from "framer-motion"
 
 import { slideUp } from "@/lib/animations"
 import type { CareerEntry } from "@/lib/types/directus"
+import { cn } from "@/lib/utils"
 
 import { SectionHeading } from "./SectionHeading"
 
@@ -22,11 +24,7 @@ const formatDate = (value: string) => {
   return value
 }
 
-export const CareerHighlights = ({
-  entries,
-}: {
-  entries: CareerEntry[]
-}) => (
+export const CareerHighlights = ({ entries }: { entries: CareerEntry[] }) => (
   <div>
     <SectionHeading command="$ history --career" />
 
@@ -38,7 +36,7 @@ export const CareerHighlights = ({
           initial="initial"
           whileInView="animate"
           viewport={{ once: true }}
-          className={i < entries.length - 1 ? "pb-8" : ""}
+          className={cn("relative", i < entries.length - 1 && "pb-8")}
         >
           <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-primary" />
 
@@ -61,5 +59,12 @@ export const CareerHighlights = ({
         </motion.div>
       ))}
     </div>
+
+    <Link
+      href="/about"
+      className="mt-4 inline-block text-sm text-primary hover:underline"
+    >
+      View full career →
+    </Link>
   </div>
 )

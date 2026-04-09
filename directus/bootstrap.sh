@@ -141,8 +141,8 @@ done
 IFS="$OLD_IFS"
 
 echo "Ensuring service account and static token..."
-SERVICE_EMAIL="nextjs-content-reader@local"
-SERVICE_EMAIL_ENCODED="nextjs-content-reader%40local"
+SERVICE_EMAIL="nextjs-content-reader@example.com"
+SERVICE_EMAIL_ENCODED="nextjs-content-reader%40example.com"
 SERVICE_USER_ID="$(api_get "/users?filter[email][_eq]=$SERVICE_EMAIL_ENCODED&limit=1" \
   | node -e 'const fs=require("fs");const j=JSON.parse(fs.readFileSync(0,"utf8"));process.stdout.write(j?.data?.[0]?.id||"")')"
 

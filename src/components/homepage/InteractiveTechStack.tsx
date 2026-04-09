@@ -23,6 +23,12 @@ const TechCard = ({ item }: { item: TechStackItem }) => {
       role="button"
       aria-expanded={isOpen}
       onClick={() => setExpanded((v) => !v)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          if (e.key === " ") e.preventDefault()
+          setExpanded((v) => !v)
+        }
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setFocused(true)}

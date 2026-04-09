@@ -10,9 +10,11 @@ const LINE_DELAY_MS = 120
 export const HeroCodeAnimation = ({
   fullName,
   tagline,
+  role,
 }: {
   fullName: string
   tagline: string
+  role: string
 }) => {
   const codeLines = [
     { text: "// welcome.ts", color: "text-muted-foreground" },
@@ -27,14 +29,14 @@ export const HeroCodeAnimation = ({
     {
       text: `  role: `,
       color: "text-foreground",
-      value: `"Full-Stack Engineer"`,
+      value: `"${role.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
       valueColor: "text-[#a5d6ff]",
       suffix: ",",
     },
     {
       text: `  focus: `,
       color: "text-foreground",
-      value: `"building things that matter"`,
+      value: `"${tagline.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
       valueColor: "text-[#a5d6ff]",
       suffix: ",",
     },
@@ -56,7 +58,7 @@ export const HeroCodeAnimation = ({
     if (visibleLines < codeLines.length) {
       const timer = setTimeout(
         () => setVisibleLines((v) => v + 1),
-        LINE_DELAY_MS,
+        LINE_DELAY_MS
       )
       return () => clearTimeout(timer)
     }
@@ -72,9 +74,7 @@ export const HeroCodeAnimation = ({
           <span className="h-3 w-3 rounded-full bg-[#f85149]" />
           <span className="h-3 w-3 rounded-full bg-[#d29922]" />
           <span className="h-3 w-3 rounded-full bg-[#3fb950]" />
-          <span className="ml-2 text-xs text-muted-foreground">
-            welcome.ts
-          </span>
+          <span className="ml-2 text-xs text-muted-foreground">welcome.ts</span>
         </div>
 
         <div className="p-4 font-mono text-sm leading-relaxed">
@@ -115,7 +115,7 @@ export const HeroCodeAnimation = ({
             <span className="text-accent">▸</span>{" "}
             <span className="text-foreground">
               {tagline}
-              <span className="ml-0.5 inline-block h-4 w-1.5 animate-[blink_1s_step-end_infinite] bg-primary align-middle" />
+              <span className="ml-0.5 inline-block h-4 w-1.5 bg-primary align-middle motion-safe:animate-[blink_1s_step-end_infinite]" />
             </span>
           </motion.div>
         )}

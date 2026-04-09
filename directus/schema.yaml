@@ -1717,6 +1717,16 @@ fields:
       data_type: character varying
       is_nullable: true
   - collection: site_settings
+    field: role
+    type: string
+    meta:
+      interface: input
+    schema:
+      name: role
+      table: site_settings
+      data_type: character varying
+      is_nullable: true
+  - collection: site_settings
     field: tagline
     type: string
     meta:

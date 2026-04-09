@@ -8,6 +8,8 @@
 
 ## Local Development
 
+### Full Docker Stack
+
 1. Copy the example environment file and fill in your values:
 
    ```bash
@@ -28,6 +30,39 @@
 
 The local override file is applied automatically by Docker Compose. `Caddyfile.dev` proxies plain HTTP traffic on `:80`, and if you want local subdomain routing you can add matching entries in `/etc/hosts`.
 `NEXT_PUBLIC_DIRECTUS_URL` is used by the frontend, while Directus bootstrap uses an internal API URL (`DIRECTUS_INTERNAL_URL`, defaulting to `http://directus:8055` in Docker).
+
+### Local Next.js Development
+
+For faster iteration you can run Next.js natively while keeping the backing services in Docker.
+
+1. If you haven't already, copy and fill in the base env file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Create the local dev override file and fill in the token values from your `.env`:
+
+   ```bash
+   cp .env.development.local.example .env.development.local
+   ```
+
+3. Start the backing services (Postgres, Directus):
+
+   ```bash
+   pnpm dev:services
+   ```
+
+4. Start Next.js locally:
+
+   ```bash
+   pnpm dev
+   ```
+
+5. Access the services:
+
+- Next.js: `http://localhost:3000`
+- Directus admin: `http://localhost:8055`
 
 ## Production Deployment
 

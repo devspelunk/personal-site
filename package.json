@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:services": "docker compose up -d postgres directus directus-bootstrap",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

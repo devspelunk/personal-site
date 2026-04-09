@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Circle, Github, Linkedin, Menu, X } from "lucide-react"
+import { Circle, Github, Linkedin, Mail, Menu, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -19,6 +19,7 @@ interface NavbarProps {
     githubUrl?: string
     twitterUrl?: string
     blueskyUrl?: string
+    email?: string
   }
 }
 
@@ -30,13 +31,6 @@ const navItems = [
   { href: "/ttrpg", label: "TTRPG" },
 ]
 
-const socialLinksFallback = {
-  linkedinUrl: "https://www.linkedin.com",
-  githubUrl: "https://github.com",
-  twitterUrl: "https://x.com",
-  blueskyUrl: "https://bsky.app",
-}
-
 export const Navbar = ({ social }: NavbarProps) => {
   const pathname = usePathname()
   const showMusic = process.env.NEXT_PUBLIC_FEATURE_MUSIC === "true"
@@ -44,13 +38,6 @@ export const Navbar = ({ social }: NavbarProps) => {
   const links = showMusic
     ? [...navItems, { href: "/music", label: "Music" }]
     : navItems
-
-  const socialLinks = {
-    linkedinUrl: social?.linkedinUrl ?? socialLinksFallback.linkedinUrl,
-    githubUrl: social?.githubUrl ?? socialLinksFallback.githubUrl,
-    twitterUrl: social?.twitterUrl ?? socialLinksFallback.twitterUrl,
-    blueskyUrl: social?.blueskyUrl ?? socialLinksFallback.blueskyUrl,
-  }
 
   return (
     <header className="sticky top-0 z-10 border-b border-[#21262d] bg-[#0d1117]">
@@ -80,45 +67,58 @@ export const Navbar = ({ social }: NavbarProps) => {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <a
-            href={socialLinks.linkedinUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="LinkedIn profile"
-          >
-            <Linkedin className="size-4" />
-          </a>
-          <a
-            href={socialLinks.githubUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="GitHub profile"
-          >
-            <Github className="size-4" />
-          </a>
-          <a
-            href={socialLinks.twitterUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Twitter profile"
-          >
-            <X className="size-4" />
-          </a>
-          <a
-            href={socialLinks.blueskyUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Bluesky profile"
-          >
-            <Circle className="size-4" />
-          </a>
+          {social?.linkedinUrl && (
+            <a
+              href={social.linkedinUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="LinkedIn profile"
+            >
+              <Linkedin className="size-4" suppressHydrationWarning />
+            </a>
+          )}
+          {social?.githubUrl && (
+            <a
+              href={social.githubUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub profile"
+            >
+              <Github className="size-4" suppressHydrationWarning />
+            </a>
+          )}
+          {social?.twitterUrl && (
+            <a
+              href={social.twitterUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Twitter profile"
+            >
+              <X className="size-4" suppressHydrationWarning />
+            </a>
+          )}
+          {social?.blueskyUrl && (
+            <a
+              href={social.blueskyUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Bluesky profile"
+            >
+              <Circle className="size-4" suppressHydrationWarning />
+            </a>
+          )}
+          {social?.email && (
+            <a href={`mailto:${social.email}`} aria-label="Email">
+              <Mail className="size-4" suppressHydrationWarning />
+            </a>
+          )}
         </div>
 
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Open menu">
-                <Menu className="size-5" />
+                <Menu className="size-5" suppressHydrationWarning />
               </Button>
             </SheetTrigger>
             <SheetContent

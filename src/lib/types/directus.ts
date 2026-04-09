@@ -171,6 +171,7 @@ export interface TechStackItem {
 export interface SiteSettings {
   id: string
   full_name: string | null
+  role: string | null
   tagline: string | null
   bio_markdown: string | null
   avatar: string | null
@@ -197,5 +198,5 @@ export interface DirectusSchema {
   career_entries: CareerEntry[]
   testimonials: Testimonial[]
   tech_stack_items: TechStackItem[]
-  site_settings: SiteSettings[]
+  site_settings: SiteSettings
 }
