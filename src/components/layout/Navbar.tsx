@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Circle, Github, Linkedin, Mail, Menu, X } from "lucide-react"
+import { Circle, Github, Linkedin, Mail, Menu, Search, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -12,6 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
+import { useCommandPalette } from "@/components/CommandPaletteContext"
 
 interface NavbarProps {
   social?: {
@@ -34,6 +35,7 @@ const navItems = [
 export const Navbar = ({ social }: NavbarProps) => {
   const pathname = usePathname()
   const showMusic = process.env.NEXT_PUBLIC_FEATURE_MUSIC === "true"
+  const { setOpen } = useCommandPalette()
 
   const links = showMusic
     ? [...navItems, { href: "/music", label: "Music" }]
@@ -67,6 +69,18 @@ export const Navbar = ({ social }: NavbarProps) => {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setOpen(true)}
+            className="gap-2"
+          >
+            <Search className="size-4" suppressHydrationWarning />
+            Search
+            <span className="ml-1 hidden rounded-none border border-[#21262d] px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-flex">
+              ⌘K
+            </span>
+          </Button>
           {social?.linkedinUrl && (
             <a
               href={social.linkedinUrl}

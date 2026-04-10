@@ -1,4 +1,8 @@
+"use client"
+
 import { Circle, Github, Linkedin, Mail, Terminal, X } from "lucide-react"
+
+import { useTerminal } from "@/components/TerminalContext"
 
 interface FooterProps {
   social?: {
@@ -12,6 +16,8 @@ interface FooterProps {
 }
 
 export const Footer = ({ social, resumePdfUrl }: FooterProps) => {
+  const { setOpen: setTerminalOpen } = useTerminal()
+
   const socialLinks = [
     social?.linkedinUrl && {
       href: social.linkedinUrl,
@@ -78,13 +84,15 @@ export const Footer = ({ social, resumePdfUrl }: FooterProps) => {
           © {new Date().getFullYear()} Michael Lemus
         </p>
 
-        <span
-          className="flex items-center gap-1 text-xs text-muted-foreground"
-          aria-hidden="true"
+        <button
+          type="button"
+          onClick={() => setTerminalOpen(true)}
+          className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:cursor-pointer hover:text-foreground"
+          aria-label="Open terminal"
         >
           <Terminal className="size-3.5" suppressHydrationWarning />
           &gt;_
-        </span>
+        </button>
       </div>
     </footer>
   )

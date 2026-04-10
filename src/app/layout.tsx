@@ -1,11 +1,15 @@
 import type { Metadata } from "next"
 import Script from "next/script"
-import { readSingleton } from "@directus/sdk"
+import { readItems, readSingleton } from "@directus/sdk"
 
 import "./globals.css"
 
 import { Footer } from "@/components/layout/Footer"
 import { Navbar } from "@/components/layout/Navbar"
+import { CommandPalette } from "@/components/CommandPalette"
+import { CommandPaletteProvider } from "@/components/CommandPaletteContext"
+import { Terminal } from "@/components/Terminal"
+import { TerminalProvider } from "@/components/TerminalContext"
 import { createDirectusServerClient, getAssetUrl } from "@/lib/directus"
 import type { SiteSettings } from "@/lib/types/directus"
 
@@ -45,15 +49,55 @@ export const metadata: Metadata = {
   },
 }
 
+type TerminalProject = { title: string; slug: string }
+type TerminalBlogPost = { title: string; slug: string }
+type TerminalCareerEntry = {
+  role: string
+  company: string
+  date_start: string
+  date_end: string | null
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   let siteSettings: SiteSettings
+  let projects: TerminalProject[] = []
+  let blogPosts: TerminalBlogPost[] = []
+  let careerEntries: TerminalCareerEntry[] = []
+
   try {
     const client = createDirectusServerClient()
-    siteSettings = await client.request(readSingleton("site_settings"))
+    ;[siteSettings, projects, blogPosts, careerEntries] = (await Promise.all([
+      client.request(readSingleton("site_settings")),
+      client.request(
+        readItems("projects", {
+          filter: { status: { _eq: "published" } },
+          sort: ["sort_order"],
+          fields: ["title", "slug"],
+        } as never)
+      ),
+      client.request(
+        readItems("blog_posts", {
+          filter: { status: { _eq: "published" } },
+          sort: ["-date_published"],
+          fields: ["title", "slug"],
+        } as never)
+      ),
+      client.request(
+        readItems("career_entries", {
+          sort: ["sort_order"],
+          fields: ["role", "company", "date_start", "date_end"],
+        } as never)
+      ),
+    ])) as [
+      SiteSettings,
+      TerminalProject[],
+      TerminalBlogPost[],
+      TerminalCareerEntry[],
+    ]
   } catch (error) {
-    console.error("[RootLayout] Directus site_settings fetch failed:", error)
+    console.error("[RootLayout] Directus fetch failed:", error)
     siteSettings = FALLBACK_SITE_SETTINGS
   }
 
@@ -87,11 +131,24 @@ export default async function RootLayout({
             data-do-not-track="true"
           />
         ) : null}
-        <div className="flex min-h-screen flex-col">
-          <Navbar social={social} />
-          <main className="flex-1">{children}</main>
-          <Footer social={social} resumePdfUrl={resumePdfUrl} />
-        </div>
+        <CommandPaletteProvider>
+          <TerminalProvider>
+            <div className="flex min-h-screen flex-col">
+              <Navbar social={social} />
+              <main className="flex-1">{children}</main>
+              <Footer social={social} resumePdfUrl={resumePdfUrl} />
+              <CommandPalette />
+              <Terminal
+                fullName={siteSettings.full_name}
+                tagline={siteSettings.tagline}
+                projects={projects}
+                blogPosts={blogPosts}
+                careerEntries={careerEntries}
+                resumeUrl={resumePdfUrl ?? null}
+              />
+            </div>
+          </TerminalProvider>
+        </CommandPaletteProvider>
       </body>
     </html>
   )

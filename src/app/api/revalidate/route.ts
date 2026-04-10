@@ -3,7 +3,10 @@ import { timingSafeEqual } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 
-function isRevalidationSecretValid(expected: string | undefined, provided: string) {
+function isRevalidationSecretValid(
+  expected: string | undefined,
+  provided: string
+) {
   const dummy = Buffer.alloc(32, 0)
   if (!expected) {
     timingSafeEqual(dummy, dummy)
