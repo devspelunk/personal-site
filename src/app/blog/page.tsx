@@ -5,13 +5,28 @@ import readingTime from "reading-time"
 import { BlogList, type BlogListPost } from "@/components/blog/BlogList"
 import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { createDirectusServerClient } from "@/lib/directus"
+import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
+import { getServerSiteUrl } from "@/lib/site-url"
 
 export const revalidate = 3600
 
+const blogDescription =
+  "Articles on software engineering, architecture, and building reliable systems."
+
 export const metadata: Metadata = {
   title: "Blog",
-  description:
-    "Articles on software engineering, architecture, and building reliable systems.",
+  description: blogDescription,
+  openGraph: {
+    title: "Blog",
+    description: blogDescription,
+    url: "/blog",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog",
+    description: blogDescription,
+  },
 }
 
 type BlogPostRow = Omit<BlogListPost, "readTime"> & {
@@ -64,9 +79,19 @@ export default async function BlogPage({
       : null,
   })) satisfies BlogListPost[]
 
+  const siteUrl = getServerSiteUrl()
+  const breadcrumbLd = buildBreadcrumbJsonLd([
+    { name: "Home", url: `${siteUrl}/` },
+    { name: "Blog", url: `${siteUrl}/blog` },
+  ])
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-12">
-      <SectionHeading command="$ ls ~/blog" />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScriptHtml(breadcrumbLd) }}
+      />
+      <SectionHeading command="$ ls ~/blog" variant="page" />
       <BlogList posts={posts} selectedTagSlugs={selectedTagSlugs} />
     </div>
   )

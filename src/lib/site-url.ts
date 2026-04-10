@@ -70,9 +70,7 @@ export function getServerSiteUrl(options?: GetServerSiteUrlOptions) {
     return "http://localhost:3000"
   }
 
-  const derived = options?.request
-    ? deriveFromRequest(options.request)
-    : null
+  const derived = options?.request ? deriveFromRequest(options.request) : null
   if (derived) {
     return derived
   }

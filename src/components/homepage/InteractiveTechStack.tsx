@@ -34,7 +34,7 @@ const TechCard = ({ item }: { item: TechStackItem }) => {
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       whileHover={{ scale: 1.03 }}
-      className="cursor-pointer rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="cursor-pointer rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
     >
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-bold text-primary">
@@ -74,11 +74,7 @@ const TechCard = ({ item }: { item: TechStackItem }) => {
   )
 }
 
-export const InteractiveTechStack = ({
-  items,
-}: {
-  items: TechStackItem[]
-}) => (
+export const InteractiveTechStack = ({ items }: { items: TechStackItem[] }) => (
   <div>
     <SectionHeading command="$ cat tech-stack.json" />
 

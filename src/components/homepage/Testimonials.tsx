@@ -20,7 +20,7 @@ export const Testimonials = ({
 
   const advance = useCallback(
     () => setActiveIndex((i) => (i + 1) % testimonials.length),
-    [testimonials.length],
+    [testimonials.length]
   )
 
   useEffect(() => {

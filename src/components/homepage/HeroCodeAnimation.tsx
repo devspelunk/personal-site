@@ -69,6 +69,7 @@ export const HeroCodeAnimation = ({
 
   return (
     <div className="mx-auto max-w-2xl">
+      <h1 className="sr-only">{fullName}</h1>
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <div className="flex items-center gap-2 border-b border-border px-4 py-2">
           <span className="h-3 w-3 rounded-full bg-[#f85149]" />

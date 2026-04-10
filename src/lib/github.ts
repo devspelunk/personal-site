@@ -17,7 +17,7 @@ export const fetchGitHubContributions = async (username: string) => {
 
     if (!res.ok) {
       console.error(
-        `Failed to fetch GitHub contributions for ${username}: ${res.status}`,
+        `Failed to fetch GitHub contributions for ${username}: ${res.status}`
       )
       return []
     }
@@ -27,7 +27,7 @@ export const fetchGitHubContributions = async (username: string) => {
   } catch (error) {
     console.error(
       `GitHub contributions request failed for ${username}:`,
-      error instanceof Error ? error.message : error,
+      error instanceof Error ? error.message : error
     )
     return []
   }

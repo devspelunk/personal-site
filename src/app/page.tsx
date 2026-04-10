@@ -10,6 +10,8 @@ import { LatestBlogPosts } from "@/components/homepage/LatestBlogPosts"
 import { Testimonials } from "@/components/homepage/Testimonials"
 import { createDirectusServerClient } from "@/lib/directus"
 import { fetchGitHubContributions } from "@/lib/github"
+import { jsonLdScriptHtml } from "@/lib/jsonld"
+import { getServerSiteUrl } from "@/lib/site-url"
 
 export const revalidate = 3600
 
@@ -109,8 +111,33 @@ export default async function HomePage() {
     ? await fetchGitHubContributions(siteSettings.github_username)
     : []
 
+  const siteUrl = getServerSiteUrl()
+  const displayName = siteSettings.full_name ?? "Michael Lemus"
+  const sameAs = [
+    siteSettings.linkedin_url,
+    siteSettings.github_username
+      ? `https://github.com/${siteSettings.github_username}`
+      : null,
+    siteSettings.twitter_url,
+    siteSettings.bluesky_handle
+      ? `https://bsky.app/profile/${siteSettings.bluesky_handle}`
+      : null,
+  ].filter((url): url is string => Boolean(url))
+
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: displayName,
+    url: siteUrl,
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+  }
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScriptHtml(personJsonLd) }}
+      />
       <section className="py-12">
         <HeroCodeAnimation
           fullName={siteSettings.full_name ?? "Engineer"}
