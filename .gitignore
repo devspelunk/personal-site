@@ -37,3 +37,7 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Resume PDF (never commit — public repo)
+*.pdf
+scripts/.env
