@@ -9,6 +9,7 @@ import {
   updateSingleton,
   uploadFiles,
 } from "@directus/sdk"
+import { randomUUID } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { createRequire } from "node:module"
@@ -22,6 +23,21 @@ import type {
   SiteSettings,
   TechStackItem,
 } from "../src/lib/types/directus"
+
+/**
+ * Directus validates non-nullable PKs with null DB defaults as `_submitted` on create.
+ * Spread order must never let a stray `id: undefined` overwrite a generated UUID (JSON omits
+ * undefined, which then fails validation). `id` is always set last.
+ */
+function createBodyWithClientUuid(row: Record<string, unknown>) {
+  const body: Record<string, unknown> = { ...row }
+  delete body.id
+  for (const key of Object.keys(body)) {
+    if (body[key] === undefined) delete body[key]
+  }
+  body.id = randomUUID()
+  return body
+}
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse") as (
@@ -81,10 +97,42 @@ const MONTH_MAP: Record<string, string> = {
 }
 
 const SECTION_HEADER_RE =
-  /^(summary|objective|profile|experience|work history|employment|professional experience|skills|technical skills|technologies|education)\s*:?\s*$/i
+  /^(summary|objective|profile|work experience|experience|work history|employment|professional experience|core skills|skills|technical skills|technologies|education)\s*:?\s*$/i
 
 const DATE_RANGE_CAPTURE_RE =
   /(\d{1,2}\/\d{4}|[A-Za-z]+\.?\s+\d{4})\s*(?:[–\-—\u2013\u2014]|\s+to\s+)\s*(Present|Current|\d{1,2}\/\d{4}|[A-Za-z]+\.?\s+\d{4})/i
+
+/** Month tokens often get glued to the preceding company name in PDF text (e.g. `CommsorAug 2025`). */
+const GLUED_MONTH_BEFORE_YEAR = new RegExp(
+  String.raw`(?<=[A-Za-z])(September|October|November|December|February|January|August|March|April|June|July|May|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)(?=\s+\d{4}\b)`,
+  "gi"
+)
+
+function normalizeResumeLine(line: string) {
+  let s = line.replace(GLUED_MONTH_BEFORE_YEAR, " $1")
+  s = s.replace(/(?<=[A-Za-z])(?=\d{1,2}\/\d{4})/g, " ")
+  s = s.replace(/([a-z])([A-Z][a-z]+,\s*[A-Z]{2}\b)/g, "$1 $2")
+  return s.replace(/[ \t]{2,}/g, " ").trimEnd()
+}
+
+function normalizePdfResumeText(text: string) {
+  return text
+    .replace(/\r/g, "")
+    .split(/\n/)
+    .map((line) => normalizeResumeLine(line))
+    .join("\n")
+}
+
+function splitRoleLocation(role: string) {
+  return role.replace(/([a-z])([A-Z][a-z]+,\s*[A-Z]{2}\b)/g, "$1 $2").trim()
+}
+
+function stripSkillLabelFragment(token: string) {
+  return token
+    .replace(/^[-•*▪]\s*/, "")
+    .replace(/^[^:\n]{1,48}:\s*/, "")
+    .trim()
+}
 
 function loadOptionalEnvFiles() {
   const base = process.cwd()
@@ -153,8 +201,13 @@ function parseFlexibleDateToIso(raw: string) {
 
 function extractDateRange(line: string) {
   const m = DATE_RANGE_CAPTURE_RE.exec(line)
-  if (!m) return null
-  return { startRaw: m[1]!.trim(), endRaw: m[2]!.trim() }
+  if (!m || m.index === undefined) return null
+  return {
+    startRaw: m[1]!.trim(),
+    endRaw: m[2]!.trim(),
+    index: m.index,
+    matchLength: m[0].length,
+  }
 }
 
 function splitRoleCompany(line: string) {
@@ -188,7 +241,8 @@ function stripBullet(line: string) {
 function parseExperienceBlock(lines: string[]): ParsedCareer | null {
   const dateLineIdx = lines.findIndex((l) => extractDateRange(l))
   if (dateLineIdx === -1) return null
-  const dr = extractDateRange(lines[dateLineIdx]!)
+  const dateLine = lines[dateLineIdx]!
+  const dr = extractDateRange(dateLine)
   if (!dr) return null
   const dateStart = parseFlexibleDateToIso(dr.startRaw)
   if (!dateStart) return null
@@ -212,14 +266,23 @@ function parseExperienceBlock(lines: string[]): ParsedCareer | null {
   let role = ""
   let company = ""
   if (before.length >= 2) {
-    role = before[0]!
-    company = before[before.length - 1]!
+    role = splitRoleLocation(before[0]!)
+    company = before[before.length - 1]!.trim()
   } else if (before.length === 1) {
     const sc = splitRoleCompany(before[0]!)
-    role = sc.role
-    company = sc.company
+    role = splitRoleLocation(sc.role)
+    company = sc.company.trim()
   } else {
-    return null
+    company = dateLine
+      .slice(0, dr.index)
+      .trim()
+      .replace(/[\s:–\-—]+$/g, "")
+    const afterDateNonBullets = lines
+      .slice(dateLineIdx + 1)
+      .filter((l) => !isBulletLine(l))
+    const roleLine = afterDateNonBullets[0]
+    if (!roleLine) return null
+    role = splitRoleLocation(roleLine)
   }
 
   const description_markdown = bullets.map((b) => `- ${b}`).join("\n") || null
@@ -262,10 +325,21 @@ function sliceSection(text: string, label: RegExp, nextLabels: RegExp[]) {
 }
 
 function parseSkillsSection(skillsText: string): ParsedTech[] {
-  const raw = skillsText
-    .split(/[,;\n]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
+  const raw: string[] = []
+  for (const line of skillsText.split(/\r?\n/)) {
+    const t = line.trim()
+    if (!t) continue
+    let payload = t
+    if (/^[-•*▪]/.test(payload)) {
+      payload = stripBullet(payload)
+      const colon = payload.indexOf(":")
+      if (colon !== -1) payload = payload.slice(colon + 1).trim()
+    }
+    for (const part of payload.split(/[,;]+/)) {
+      const cleaned = stripSkillLabelFragment(part)
+      if (cleaned) raw.push(cleaned)
+    }
+  }
 
   const seen = new Set<string>()
   const items: ParsedTech[] = []
@@ -285,19 +359,46 @@ function parseSkillsSection(skillsText: string): ParsedTech[] {
   return items
 }
 
-function parseExperienceSection(experienceText: string): ParsedCareer[] {
-  const paragraphs = experienceText
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
+function splitExperienceIntoJobChunks(experienceText: string) {
+  const lines = experienceText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
     .filter(Boolean)
+  const chunks: string[][] = []
+  let current: string[] = []
+  for (const line of lines) {
+    if (extractDateRange(line)) {
+      if (current.length > 0) chunks.push(current)
+      current = [line]
+    } else if (current.length > 0) {
+      current.push(line)
+    }
+  }
+  if (current.length > 0) chunks.push(current)
+  return chunks
+}
+
+function parseExperienceSection(experienceText: string): ParsedCareer[] {
+  const chunks = splitExperienceIntoJobChunks(experienceText)
   const entries: ParsedCareer[] = []
-  for (const p of paragraphs) {
-    const lines = p
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean)
-    const parsed = parseExperienceBlock(lines)
+  for (const chunk of chunks) {
+    const parsed = parseExperienceBlock(chunk)
     if (parsed) entries.push(parsed)
+  }
+
+  if (entries.length === 0) {
+    const paragraphs = experienceText
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+    for (const p of paragraphs) {
+      const lines = p
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+      const parsed = parseExperienceBlock(lines)
+      if (parsed) entries.push(parsed)
+    }
   }
 
   if (entries.length === 0) {
@@ -313,11 +414,11 @@ function parseExperienceSection(experienceText: string): ParsedCareer[] {
 }
 
 function parseResumeText(fullText: string): DryRunPayload {
-  const normalized = fullText.replace(/\r/g, "").trim()
+  const normalized = normalizePdfResumeText(fullText).trim()
   const summaryLabels = /^(summary|objective|profile)$/i
   const experienceLabels =
-    /^(experience|work history|employment|professional experience)$/i
-  const skillsLabels = /^(skills|technical skills|technologies)$/i
+    /^(work experience|experience|work history|employment|professional experience)$/i
+  const skillsLabels = /^(core skills|skills|technical skills|technologies)$/i
   const educationLabels = /^education$/i
 
   const summaryText = sliceSection(normalized, summaryLabels, [
@@ -473,7 +574,12 @@ async function main() {
       await client.request(updateItem("career_entries", row.id, careerUpdate))
       careerStats.updated++
     } else {
-      await client.request(createItem("career_entries", entry))
+      await client.request(
+        createItem(
+          "career_entries",
+          createBodyWithClientUuid({ ...entry }) as never
+        )
+      )
       careerStats.created++
     }
   }
@@ -492,7 +598,12 @@ async function main() {
       await client.request(updateItem("tech_stack_items", row.id, item))
       techStats.updated++
     } else {
-      await client.request(createItem("tech_stack_items", item))
+      await client.request(
+        createItem(
+          "tech_stack_items",
+          createBodyWithClientUuid({ ...item }) as never
+        )
+      )
       techStats.created++
     }
   }
