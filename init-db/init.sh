@@ -7,4 +7,10 @@ WHERE NOT EXISTS (
   SELECT FROM pg_database WHERE datname = 'umami'
 )
 \gexec
+
+SELECT 'CREATE DATABASE payload'
+WHERE NOT EXISTS (
+  SELECT FROM pg_database WHERE datname = 'payload'
+)
+\gexec
 EOSQL
