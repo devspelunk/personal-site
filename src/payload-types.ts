@@ -68,6 +68,18 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    media: Media;
+    tags: Tag;
+    'blog-posts': BlogPost;
+    projects: Project;
+    campaigns: Campaign;
+    'ttrpg-journals': TtrpgJournal;
+    'ttrpg-characters': TtrpgCharacter;
+    'ttrpg-lore': TtrpgLore;
+    'ttrpg-homebrew': TtrpgHomebrew;
+    'career-entries': CareerEntry;
+    testimonials: Testimonial;
+    'tech-stack-items': TechStackItem;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,6 +88,18 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
+    tags: TagsSelect<false> | TagsSelect<true>;
+    'blog-posts': BlogPostsSelect<false> | BlogPostsSelect<true>;
+    projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
+    'ttrpg-journals': TtrpgJournalsSelect<false> | TtrpgJournalsSelect<true>;
+    'ttrpg-characters': TtrpgCharactersSelect<false> | TtrpgCharactersSelect<true>;
+    'ttrpg-lore': TtrpgLoreSelect<false> | TtrpgLoreSelect<true>;
+    'ttrpg-homebrew': TtrpgHomebrewSelect<false> | TtrpgHomebrewSelect<true>;
+    'career-entries': CareerEntriesSelect<false> | CareerEntriesSelect<true>;
+    testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
+    'tech-stack-items': TechStackItemsSelect<false> | TechStackItemsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -85,8 +109,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -142,6 +170,200 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags".
+ */
+export interface Tag {
+  id: number;
+  name: string;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog-posts".
+ */
+export interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  body_markdown?: string | null;
+  excerpt?: string | null;
+  is_featured?: boolean | null;
+  featured_image?: (number | null) | Media;
+  date_published?: string | null;
+  tags?: (number | Tag)[] | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects".
+ */
+export interface Project {
+  id: number;
+  title: string;
+  slug: string;
+  description_markdown?: string | null;
+  short_description?: string | null;
+  is_featured?: boolean | null;
+  role?: string | null;
+  context_constraints?: string | null;
+  outcome_impact?: string | null;
+  thumbnail?: (number | null) | Media;
+  demo_url?: string | null;
+  repo_url?: string | null;
+  sort_order?: number | null;
+  tags?: (number | Tag)[] | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campaigns".
+ */
+export interface Campaign {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  status?: ('active' | 'completed' | 'archived') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ttrpg-journals".
+ */
+export interface TtrpgJournal {
+  id: number;
+  title: string;
+  slug: string;
+  campaign?: (number | null) | Campaign;
+  session_number?: number | null;
+  body_markdown?: string | null;
+  excerpt?: string | null;
+  session_date?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ttrpg-characters".
+ */
+export interface TtrpgCharacter {
+  id: number;
+  name: string;
+  slug: string;
+  campaign?: (number | null) | Campaign;
+  class_role?: string | null;
+  backstory_markdown?: string | null;
+  stats_overview?: string | null;
+  portrait?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ttrpg-lore".
+ */
+export interface TtrpgLore {
+  id: number;
+  title: string;
+  slug: string;
+  campaign?: (number | null) | Campaign;
+  category: 'faction' | 'location' | 'timeline' | 'event' | 'item';
+  body_markdown?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ttrpg-homebrew".
+ */
+export interface TtrpgHomebrew {
+  id: number;
+  title: string;
+  slug: string;
+  campaign?: (number | null) | Campaign;
+  type: 'character_class' | 'magic_item' | 'rule_variant' | 'monster' | 'spell';
+  body_markdown?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "career-entries".
+ */
+export interface CareerEntry {
+  id: number;
+  role: string;
+  company: string;
+  date_start: string;
+  date_end?: string | null;
+  highlight?: string | null;
+  description_markdown?: string | null;
+  is_homepage_highlight?: boolean | null;
+  sort_order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "testimonials".
+ */
+export interface Testimonial {
+  id: number;
+  quote: string;
+  author_name: string;
+  author_role?: string | null;
+  author_photo?: (number | null) | Media;
+  is_homepage_featured?: boolean | null;
+  sort_order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tech-stack-items".
+ */
+export interface TechStackItem {
+  id: number;
+  name: string;
+  icon_slug?: string | null;
+  experience_years?: string | null;
+  context?: string | null;
+  sort_order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -163,10 +385,59 @@ export interface PayloadKv {
  */
 export interface PayloadLockedDocument {
   id: number;
-  document?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
+  document?:
+    | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null)
+    | ({
+        relationTo: 'media';
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'tags';
+        value: number | Tag;
+      } | null)
+    | ({
+        relationTo: 'blog-posts';
+        value: number | BlogPost;
+      } | null)
+    | ({
+        relationTo: 'projects';
+        value: number | Project;
+      } | null)
+    | ({
+        relationTo: 'campaigns';
+        value: number | Campaign;
+      } | null)
+    | ({
+        relationTo: 'ttrpg-journals';
+        value: number | TtrpgJournal;
+      } | null)
+    | ({
+        relationTo: 'ttrpg-characters';
+        value: number | TtrpgCharacter;
+      } | null)
+    | ({
+        relationTo: 'ttrpg-lore';
+        value: number | TtrpgLore;
+      } | null)
+    | ({
+        relationTo: 'ttrpg-homebrew';
+        value: number | TtrpgHomebrew;
+      } | null)
+    | ({
+        relationTo: 'career-entries';
+        value: number | CareerEntry;
+      } | null)
+    | ({
+        relationTo: 'testimonials';
+        value: number | Testimonial;
+      } | null)
+    | ({
+        relationTo: 'tech-stack-items';
+        value: number | TechStackItem;
+      } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
@@ -233,6 +504,188 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog-posts_select".
+ */
+export interface BlogPostsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  body_markdown?: T;
+  excerpt?: T;
+  is_featured?: T;
+  featured_image?: T;
+  date_published?: T;
+  tags?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects_select".
+ */
+export interface ProjectsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  description_markdown?: T;
+  short_description?: T;
+  is_featured?: T;
+  role?: T;
+  context_constraints?: T;
+  outcome_impact?: T;
+  thumbnail?: T;
+  demo_url?: T;
+  repo_url?: T;
+  sort_order?: T;
+  tags?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campaigns_select".
+ */
+export interface CampaignsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ttrpg-journals_select".
+ */
+export interface TtrpgJournalsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  campaign?: T;
+  session_number?: T;
+  body_markdown?: T;
+  excerpt?: T;
+  session_date?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ttrpg-characters_select".
+ */
+export interface TtrpgCharactersSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  campaign?: T;
+  class_role?: T;
+  backstory_markdown?: T;
+  stats_overview?: T;
+  portrait?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ttrpg-lore_select".
+ */
+export interface TtrpgLoreSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  campaign?: T;
+  category?: T;
+  body_markdown?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ttrpg-homebrew_select".
+ */
+export interface TtrpgHomebrewSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  campaign?: T;
+  type?: T;
+  body_markdown?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "career-entries_select".
+ */
+export interface CareerEntriesSelect<T extends boolean = true> {
+  role?: T;
+  company?: T;
+  date_start?: T;
+  date_end?: T;
+  highlight?: T;
+  description_markdown?: T;
+  is_homepage_highlight?: T;
+  sort_order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "testimonials_select".
+ */
+export interface TestimonialsSelect<T extends boolean = true> {
+  quote?: T;
+  author_name?: T;
+  author_role?: T;
+  author_photo?: T;
+  is_homepage_featured?: T;
+  sort_order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tech-stack-items_select".
+ */
+export interface TechStackItemsSelect<T extends boolean = true> {
+  name?: T;
+  icon_slug?: T;
+  experience_years?: T;
+  context?: T;
+  sort_order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -270,6 +723,46 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  full_name?: string | null;
+  role?: string | null;
+  tagline?: string | null;
+  bio_markdown?: string | null;
+  avatar?: (number | null) | Media;
+  resume_pdf?: (number | null) | Media;
+  github_username?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
+  bluesky_handle?: string | null;
+  email?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  full_name?: T;
+  role?: T;
+  tagline?: T;
+  bio_markdown?: T;
+  avatar?: T;
+  resume_pdf?: T;
+  github_username?: T;
+  linkedin_url?: T;
+  twitter_url?: T;
+  bluesky_handle?: T;
+  email?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
