@@ -1,8 +1,25 @@
 import type { CollectionConfig } from "payload"
 
+import { authenticated } from "../access/authenticated"
+import {
+  revalidateCollectionAfterChange,
+  revalidateCollectionAfterDelete,
+} from "../lib/revalidate-hooks"
+
 // No drafts: career entries publish directly.
 export const CareerEntries: CollectionConfig = {
   slug: "career-entries",
+  access: {
+    // Public content — readable by anonymous REST/GraphQL clients.
+    read: () => true,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
+  },
+  hooks: {
+    afterChange: [revalidateCollectionAfterChange],
+    afterDelete: [revalidateCollectionAfterDelete],
+  },
   admin: {
     useAsTitle: "role",
     defaultColumns: ["role", "company", "date_start", "sort_order"],

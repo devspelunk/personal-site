@@ -1,8 +1,25 @@
 import type { CollectionConfig } from "payload"
 
+import { authenticated } from "../access/authenticated"
+import {
+  revalidateCollectionAfterChange,
+  revalidateCollectionAfterDelete,
+} from "../lib/revalidate-hooks"
+
 // No drafts: tech stack items publish directly.
 export const TechStackItems: CollectionConfig = {
   slug: "tech-stack-items",
+  access: {
+    // Public content — readable by anonymous REST/GraphQL clients.
+    read: () => true,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
+  },
+  hooks: {
+    afterChange: [revalidateCollectionAfterChange],
+    afterDelete: [revalidateCollectionAfterDelete],
+  },
   admin: {
     useAsTitle: "name",
     defaultColumns: ["name", "icon_slug", "experience_years", "sort_order"],

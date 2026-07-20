@@ -3,6 +3,8 @@ import { timingSafeEqual } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 
+import { pathsForCollection } from "@/lib/revalidate-paths"
+
 function isRevalidationSecretValid(
   expected: string | undefined,
   provided: string
@@ -40,78 +42,15 @@ function normalizeSlug(raw: unknown) {
   return s
 }
 
-function addDetailPath(
-  paths: Set<string>,
-  collection: string,
-  slug: string | undefined
-) {
-  if (!slug) return
-  switch (collection) {
-    case "blog_posts":
-      paths.add(`/blog/${slug}`)
-      break
-    case "projects":
-      paths.add(`/projects/${slug}`)
-      break
-    case "ttrpg_journals":
-      paths.add(`/ttrpg/journals/${slug}`)
-      break
-    case "ttrpg_characters":
-      paths.add(`/ttrpg/characters/${slug}`)
-      break
-    case "ttrpg_lore":
-      paths.add(`/ttrpg/lore/${slug}`)
-      break
-    case "ttrpg_homebrew":
-      paths.add(`/ttrpg/homebrew/${slug}`)
-      break
-    default:
-      break
-  }
-}
-
-function pathsForCollection(collection: string, slug?: string) {
-  const paths = new Set<string>()
-
-  switch (collection) {
-    case "blog_posts":
-      paths.add("/")
-      paths.add("/blog")
-      paths.add("/feed.xml")
-      paths.add("/sitemap.xml")
-      paths.add("/search-index.json")
-      addDetailPath(paths, collection, slug)
-      break
-    case "projects":
-      paths.add("/")
-      paths.add("/projects")
-      paths.add("/sitemap.xml")
-      paths.add("/search-index.json")
-      addDetailPath(paths, collection, slug)
-      break
-    case "ttrpg_journals":
-    case "ttrpg_characters":
-    case "ttrpg_lore":
-    case "ttrpg_homebrew":
-      paths.add("/ttrpg")
-      paths.add("/sitemap.xml")
-      paths.add("/search-index.json")
-      addDetailPath(paths, collection, slug)
-      break
-    case "career_entries":
-    case "testimonials":
-    case "tech_stack_items":
-    case "site_settings":
-      paths.add("/")
-      paths.add("/about")
-      paths.add("/sitemap.xml")
-      paths.add("/search-index.json")
-      break
-    default:
-      return null
-  }
-
-  return paths
+/**
+ * Legacy Directus webhook receiver. Directus sends snake_case collection names
+ * (`blog_posts`, `ttrpg_journals`, …); the shared path map is keyed on the
+ * kebab-case Payload slugs, and every Directus name maps cleanly by swapping
+ * underscores for hyphens. Kept for the transition window — T6 removes this
+ * route and the `REVALIDATION_SECRET` alongside the Directus reads.
+ */
+function toPayloadSlug(collection: string) {
+  return collection.replaceAll("_", "-")
 }
 
 export async function POST(request: Request) {
@@ -138,16 +77,16 @@ export async function POST(request: Request) {
   const slug = normalizeSlug(body.slug)
   const previousSlug = normalizeSlug(body.previous_slug)
 
-  const pathSet = pathsForCollection(body.collection, slug)
-  if (!pathSet) {
+  const paths = pathsForCollection(toPayloadSlug(body.collection), {
+    slug,
+    previousSlug,
+  })
+
+  // An unknown collection maps to no paths — reject as before.
+  if (paths.length === 0) {
     return NextResponse.json({ error: "Bad Request" }, { status: 400 })
   }
 
-  if (previousSlug && previousSlug !== slug) {
-    addDetailPath(pathSet, body.collection, previousSlug)
-  }
-
-  const paths = [...pathSet]
   for (const p of paths) {
     revalidatePath(p)
   }

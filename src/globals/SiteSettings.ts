@@ -1,8 +1,20 @@
 import type { GlobalConfig } from "payload"
 
+import { authenticated } from "../access/authenticated"
+import { revalidateGlobalAfterChange } from "../lib/revalidate-hooks"
+
 // Mirrors the Directus `site_settings` singleton.
 export const SiteSettings: GlobalConfig = {
   slug: "site-settings",
+  access: {
+    // Public read (site chrome, resume link, socials); writes require auth.
+    // Globals only support `read` and `update` access controls.
+    read: () => true,
+    update: authenticated,
+  },
+  hooks: {
+    afterChange: [revalidateGlobalAfterChange],
+  },
   fields: [
     {
       name: "full_name",

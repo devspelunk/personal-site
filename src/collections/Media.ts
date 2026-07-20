@@ -3,6 +3,8 @@ import { fileURLToPath } from "url"
 
 import type { CollectionConfig } from "payload"
 
+import { authenticated } from "../access/authenticated"
+
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
@@ -11,6 +13,13 @@ const dirname = path.dirname(filename)
 // /api/media/file/:filename route.
 export const Media: CollectionConfig = {
   slug: "media",
+  access: {
+    // MUST stay public so images + the resume PDF serve to anonymous browsers.
+    read: () => true,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
+  },
   upload: {
     staticDir: path.resolve(dirname, "../../media"),
     // Images for avatars/thumbnails/portraits, plus PDF for resume_pdf.

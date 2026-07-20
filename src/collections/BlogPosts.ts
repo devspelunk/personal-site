@@ -1,9 +1,26 @@
 import type { CollectionConfig } from "payload"
 
+import { authenticated } from "../access/authenticated"
+import { authenticatedOrPublished } from "../access/authenticatedOrPublished"
+import {
+  revalidateCollectionAfterChange,
+  revalidateCollectionAfterDelete,
+} from "../lib/revalidate-hooks"
+
 // Drafts enabled: the Directus `status` (draft/published) is represented by
 // Payload's built-in `_status` version field, so no explicit status field here.
 export const BlogPosts: CollectionConfig = {
   slug: "blog-posts",
+  access: {
+    read: authenticatedOrPublished,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
+  },
+  hooks: {
+    afterChange: [revalidateCollectionAfterChange],
+    afterDelete: [revalidateCollectionAfterDelete],
+  },
   admin: {
     useAsTitle: "title",
     defaultColumns: ["title", "slug", "date_published", "_status"],

@@ -1,8 +1,25 @@
 import type { CollectionConfig } from "payload"
 
+import { authenticated } from "../access/authenticated"
+import { authenticatedOrPublished } from "../access/authenticatedOrPublished"
+import {
+  revalidateCollectionAfterChange,
+  revalidateCollectionAfterDelete,
+} from "../lib/revalidate-hooks"
+
 // Drafts enabled: Directus `status` maps to Payload's `_status` version field.
 export const TtrpgJournals: CollectionConfig = {
   slug: "ttrpg-journals",
+  access: {
+    read: authenticatedOrPublished,
+    create: authenticated,
+    update: authenticated,
+    delete: authenticated,
+  },
+  hooks: {
+    afterChange: [revalidateCollectionAfterChange],
+    afterDelete: [revalidateCollectionAfterDelete],
+  },
   admin: {
     useAsTitle: "title",
     group: "TTRPG",
