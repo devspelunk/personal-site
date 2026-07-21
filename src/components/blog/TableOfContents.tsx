@@ -78,7 +78,7 @@ export function TableOfContents({ headings }: { headings: Heading[] }) {
   return (
     <div className="w-full shrink-0 lg:w-52">
       <div className="mb-8 lg:hidden">
-        <details className="rounded-lg border border-border bg-card">
+        <details className="rounded-none border border-border bg-card">
           <summary className="cursor-pointer px-3 py-2 font-mono text-sm text-primary">
             On this page
           </summary>

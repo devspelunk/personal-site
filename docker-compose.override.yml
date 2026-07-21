@@ -3,10 +3,6 @@ services:
     ports:
       - "5432:5432"
 
-  directus:
-    ports:
-      - "8055:8055"
-
   nextjs:
     build:
       context: .

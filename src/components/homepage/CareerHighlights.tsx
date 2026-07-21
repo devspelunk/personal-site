@@ -6,7 +6,7 @@ import { useMemo } from "react"
 import DOMPurify from "isomorphic-dompurify"
 
 import { slideUp } from "@/lib/animations"
-import type { CareerEntry } from "@/lib/types/directus"
+import type { CareerEntry } from "@/payload-types"
 import { articleBodyClass, cn } from "@/lib/utils"
 
 import { SectionHeading } from "./SectionHeading"

@@ -14,19 +14,32 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ARG NEXT_PUBLIC_SITE_URL
-ARG NEXT_PUBLIC_DIRECTUS_URL
 ARG NEXT_PUBLIC_FEATURE_MUSIC
-ARG DIRECTUS_TOKEN
-ARG REVALIDATION_SECRET
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_DIRECTUS_URL=$NEXT_PUBLIC_DIRECTUS_URL
 ENV NEXT_PUBLIC_FEATURE_MUSIC=$NEXT_PUBLIC_FEATURE_MUSIC
-ENV DIRECTUS_TOKEN=$DIRECTUS_TOKEN
-ENV REVALIDATION_SECRET=$REVALIDATION_SECRET
 
 RUN corepack enable pnpm && pnpm build
+
+# Migration stage — runs `payload migrate` before the app boots. It needs the
+# full dependency tree (the `payload` CLI + tsx to load the TS config) and the
+# source (payload.config.ts + src/migrations), so it reuses the `deps`
+# node_modules + the repo source rather than the slim runner. pnpm is enabled
+# and pre-cached at build time so `pnpm exec` needs no network at runtime.
+FROM node:20-alpine AS migrate
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+RUN corepack enable pnpm && pnpm --version
+
+CMD ["pnpm", "exec", "payload", "migrate"]
 
 FROM node:20-alpine AS runner
 
@@ -40,6 +53,11 @@ RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Payload writes uploads under /app/media (the Media collection staticDir
+# resolves to the standalone root + /media). Create it owned by the app user so
+# the mounted media volume is writable.
+RUN mkdir -p /app/media && chown nextjs:nodejs /app/media
 
 USER nextjs
 

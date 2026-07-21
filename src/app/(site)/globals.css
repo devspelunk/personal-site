@@ -1,0 +1,202 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Single acid-on-dark foundation (Vectorheart / Y2K / Marathon).
+ * `:root` and `.dark` are intentionally identical — there is only one theme.
+ * Token values are starting points to be tuned in a later visual pass.
+ */
+:root {
+  --background: #0a0b09;
+  --foreground: #f2f2ef;
+  --card: #111310;
+  --card-foreground: #f2f2ef;
+  --popover: #111310;
+  --popover-foreground: #f2f2ef;
+  --primary: #c8ff00;
+  --primary-foreground: #0a0b09;
+  --secondary: #1a1c18;
+  --secondary-foreground: #f2f2ef;
+  --muted: #1a1c18;
+  --muted-foreground: #8a9188;
+  --accent: #ff4d00;
+  --accent-foreground: #0a0b09;
+  --destructive: #ff2e2e;
+  /* Faint decorative hairline (~1.4:1) - NOT for interactive boundaries. */
+  --border: #2a2e28;
+  /* Interactive boundaries + focus rings need >= 3:1 (WCAG 1.4.11). */
+  --input: #6b7268;
+  --ring: #c8ff00;
+  /* Hard edges: shadcn primitives are square. */
+  --radius: 0rem;
+}
+
+.dark {
+  --background: #0a0b09;
+  --foreground: #f2f2ef;
+  --card: #111310;
+  --card-foreground: #f2f2ef;
+  --popover: #111310;
+  --popover-foreground: #f2f2ef;
+  --primary: #c8ff00;
+  --primary-foreground: #0a0b09;
+  --secondary: #1a1c18;
+  --secondary-foreground: #f2f2ef;
+  --muted: #1a1c18;
+  --muted-foreground: #8a9188;
+  --accent: #ff4d00;
+  --accent-foreground: #0a0b09;
+  --destructive: #ff2e2e;
+  --border: #2a2e28;
+  --input: #6b7268;
+  --ring: #c8ff00;
+}
+
+@theme inline {
+  /* JetBrains Mono is the body voice; Michroma is the display voice. */
+  --font-sans: var(--font-jetbrains-mono);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-michroma);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background font-mono text-foreground;
+  }
+}
+
+@layer components {
+  /*
+   * Oversized numeric section index (e.g. "01 /"). Foundation-only helper;
+   * ornament components that consume it are T8b.
+   */
+  .section-index {
+    @apply font-display text-5xl leading-none tracking-tight text-muted-foreground tabular-nums;
+  }
+
+  /*
+   * T8b ornament — CRT scanline overlay. Fixed, full-viewport, non-interactive.
+   * Sits above page content (z-40) but below the terminal/command-palette
+   * modals (z-50/z-60) so their text stays crisp. `pointer-events: none` keeps
+   * every click passing through to the UI beneath it. Static (no animation),
+   * so it renders identically under `prefers-reduced-motion: reduce`.
+   */
+  .ornament-scanlines {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.1) 0px,
+      rgba(0, 0, 0, 0.1) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  /*
+   * T8b ornament — barcode motif for the DataStrip decal. Uses `currentColor`
+   * so the bar colour follows the element's text colour (e.g. `text-accent`).
+   */
+  .ornament-barcode {
+    background-image: repeating-linear-gradient(
+      90deg,
+      currentColor 0px,
+      currentColor 1px,
+      transparent 1px,
+      transparent 2px,
+      currentColor 2px,
+      currentColor 4px,
+      transparent 4px,
+      transparent 5px,
+      currentColor 5px,
+      currentColor 6px,
+      transparent 6px,
+      transparent 9px
+    );
+    background-repeat: repeat-x;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/*
+ * T8b ornament — authoritative reduced-motion gate. framer-motion's
+ * useReducedMotion() only captures a one-time snapshot and can miss a
+ * pre-set preference, so this CSS is the source of truth: it neutralises the
+ * glitch / chromatic-aberration hover (chromatic box-shadow on cards, RGB-split
+ * ghost copies on headings) regardless of how the hook resolved. Static
+ * ornaments (scanlines, registration marks, DataStrip, vector accents) are
+ * intentionally left untouched.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ornament-glitch-card {
+    box-shadow: none !important;
+  }
+  .ornament-glitch-ghost {
+    display: none !important;
+  }
+}
+
+/* Markdown code blocks (rehype-pretty-code) — acid-on-dark, hard edges */
+[data-rehype-pretty-code-figure] pre {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+[data-rehype-pretty-code-figure] pre code {
+  background: transparent;
+  padding: 0;
+}
+[data-rehype-pretty-code-figure] [data-line] {
+  padding: 0 0.25rem;
+}
+
+/* Inline code */
+:not(pre) > code {
+  border: 1px solid var(--border);
+  background: var(--muted);
+  padding: 0.05em 0.35em;
+  font-size: 0.9em;
+}

@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "next dev --turbopack",
-    "dev:services": "docker compose up -d postgres directus directus-bootstrap",
+    "dev:services": "docker compose up -d postgres",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -15,17 +15,19 @@
     "import-resume": "tsx scripts/import-resume.ts"
   },
   "dependencies": {
-    "@directus/sdk": "^21.2.0",
+    "@payloadcms/db-postgres": "3.86.0",
+    "@payloadcms/next": "3.86.0",
     "@phosphor-icons/react": "^2.1.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "framer-motion": "^12.37.0",
     "fuse.js": "^7.3.0",
+    "graphql": "^16.13.1",
     "isomorphic-dompurify": "^3.8.0",
     "lucide-react": "^0.577.0",
-    "next": "16.1.6",
-    "next-themes": "^0.4.6",
+    "next": "16.2.10",
+    "payload": "3.86.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",
     "react-activity-calendar": "^3.1.1",
@@ -38,6 +40,7 @@
     "remark-rehype": "^11.1.2",
     "server-only": "^0.0.1",
     "shadcn": "^4.0.8",
+    "sharp": "^0.34.5",
     "shiki": "^4.0.2",
     "tailwind-merge": "^3.5.0",
     "tw-animate-css": "^1.4.0",
@@ -51,7 +54,7 @@
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.2",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.2.10",
     "pdf-parse": "^1.1.1",
     "postcss": "^8",
     "prettier": "^3.8.1",
@@ -59,5 +62,10 @@
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
   }
 }

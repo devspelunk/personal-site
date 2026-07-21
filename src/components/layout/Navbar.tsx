@@ -42,9 +42,9 @@ export const Navbar = ({ social }: NavbarProps) => {
     : navItems
 
   return (
-    <header className="sticky top-0 z-10 border-b border-[#21262d] bg-[#0d1117]">
+    <header className="sticky top-0 z-10 border-b border-border bg-background">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="text-lg font-semibold text-[#58a6ff]">
+        <Link href="/" className="text-lg font-semibold text-primary">
           ~/michael
         </Link>
 
@@ -77,7 +77,7 @@ export const Navbar = ({ social }: NavbarProps) => {
           >
             <Search className="size-4" suppressHydrationWarning />
             Search
-            <span className="ml-1 hidden rounded-none border border-[#21262d] px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-flex">
+            <span className="ml-1 hidden rounded-none border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-flex">
               ⌘K
             </span>
           </Button>
@@ -137,7 +137,7 @@ export const Navbar = ({ social }: NavbarProps) => {
             </SheetTrigger>
             <SheetContent
               side="right"
-              className="border-[#21262d] bg-[#0d1117] pt-12"
+              className="border-border bg-background pt-12"
             >
               <nav className="flex flex-col gap-4">
                 {links.map((link) => (

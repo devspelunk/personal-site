@@ -1,31 +1,14 @@
+import path from "path"
+import { fileURLToPath } from "url"
+
 import type { NextConfig } from "next"
+import { withPayload } from "@payloadcms/next/withPayload"
 
-const directusUrl = process.env.NEXT_PUBLIC_DIRECTUS_URL
-
-const remotePattern = (() => {
-  if (!directusUrl) {
-    return []
-  }
-
-  try {
-    const parsedUrl = new URL(directusUrl)
-
-    return [
-      {
-        protocol: parsedUrl.protocol.replace(":", "") as "http" | "https",
-        hostname: parsedUrl.hostname,
-      },
-    ]
-  } catch {
-    return []
-  }
-})()
+const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  images: {
-    remotePatterns: remotePattern,
-  },
+  outputFileTracingRoot: dirname,
 }
 
-export default nextConfig
+export default withPayload(nextConfig)

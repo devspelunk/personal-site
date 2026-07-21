@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react"
 import Image from "next/image"
 import { AnimatePresence, motion } from "framer-motion"
 
-import { getAssetUrl } from "@/lib/assets"
-import type { Testimonial } from "@/lib/types/directus"
+import { getMediaUrl } from "@/lib/media"
+import type { Testimonial } from "@/payload-types"
 
 import { SectionHeading } from "./SectionHeading"
 
@@ -32,6 +32,7 @@ export const Testimonials = ({
   if (testimonials.length === 0) return null
 
   const current = testimonials[activeIndex]
+  const photoUrl = getMediaUrl(current.author_photo)
 
   return (
     <div>
@@ -45,7 +46,7 @@ export const Testimonials = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="rounded-lg border border-border border-l-primary bg-card p-6"
+            className="rounded-none border border-border border-l-primary bg-card p-6"
             style={{ borderLeftWidth: 3 }}
           >
             <blockquote className="mb-4 text-sm leading-relaxed text-foreground italic">
@@ -53,9 +54,9 @@ export const Testimonials = ({
             </blockquote>
 
             <div className="flex items-center gap-3">
-              {current.author_photo && (
+              {photoUrl && (
                 <Image
-                  src={getAssetUrl(current.author_photo)}
+                  src={photoUrl}
                   alt={current.author_name}
                   width={36}
                   height={36}

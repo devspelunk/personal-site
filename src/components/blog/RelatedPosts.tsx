@@ -22,7 +22,7 @@ export function RelatedPosts({
           <Link
             key={post.slug}
             href={`/blog/${post.slug}`}
-            className="related-card min-w-[200px] flex-1 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary"
+            className="related-card min-w-[200px] flex-1 rounded-none border border-border bg-card p-4 transition-colors hover:border-primary"
           >
             <h3 className="mb-2 font-mono text-sm font-semibold text-foreground">
               {post.title}

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { staggerChildren, staggerItem } from "@/lib/animations"
-import type { TechStackItem } from "@/lib/types/directus"
+import type { TechStackItem } from "@/payload-types"
 
 import { SectionHeading } from "./SectionHeading"
 
@@ -34,10 +34,10 @@ const TechCard = ({ item }: { item: TechStackItem }) => {
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       whileHover={{ scale: 1.03 }}
-      className="cursor-pointer rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+      className="cursor-pointer rounded-none border border-border bg-card p-4 transition-colors hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-bold text-primary">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-secondary text-xs font-bold text-primary">
           {item.icon_slug
             ? item.icon_slug.slice(0, 2).toUpperCase()
             : item.name.slice(0, 2).toUpperCase()}

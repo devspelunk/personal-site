@@ -3,17 +3,13 @@ import Link from "next/link"
 import { BlogPostCard, type BlogPostCardTag } from "./BlogPostCard"
 
 export interface BlogListPost {
-  id: string
+  id: number
   slug: string
   title: string
   excerpt: string | null
   date_published: string | null
   readTime: number | null
-  blog_posts_tags?: { tag_id: BlogPostCardTag }[]
-}
-
-function tagsFromPost(post: BlogListPost): BlogPostCardTag[] {
-  return post.blog_posts_tags?.map((row) => row.tag_id).filter(Boolean) ?? []
+  tags: BlogPostCardTag[]
 }
 
 function blogListPath(tagSlugs: string[]) {
@@ -28,7 +24,7 @@ function blogListPath(tagSlugs: string[]) {
 function uniqueTagsFromPosts(posts: BlogListPost[]) {
   const bySlug = new Map<string, BlogPostCardTag>()
   for (const post of posts) {
-    for (const tag of tagsFromPost(post)) {
+    for (const tag of post.tags) {
       bySlug.set(tag.slug, tag)
     }
   }
@@ -50,7 +46,7 @@ export function BlogList({
     selectedTagSlugs.length === 0
       ? posts
       : posts.filter((post) => {
-          const postSlugs = new Set(tagsFromPost(post).map((t) => t.slug))
+          const postSlugs = new Set(post.tags.map((t) => t.slug))
           return selectedTagSlugs.some((s) => postSlugs.has(s))
         })
 
@@ -90,7 +86,7 @@ export function BlogList({
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {filteredPosts.map((post) => (
+        {filteredPosts.map((post, i) => (
           <BlogPostCard
             key={post.id}
             slug={post.slug}
@@ -98,7 +94,8 @@ export function BlogList({
             excerpt={post.excerpt}
             date_published={post.date_published}
             readTime={post.readTime}
-            tags={tagsFromPost(post)}
+            tags={post.tags}
+            index={i}
           />
         ))}
       </div>

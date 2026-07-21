@@ -157,10 +157,10 @@ export function Terminal(props: TerminalProps) {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className="fixed right-0 bottom-0 left-0 z-60 flex h-[60vh] max-h-[600px] flex-col rounded-t-lg border border-[#30363d] bg-[#0d1117] font-mono text-sm shadow-lg"
+            className="fixed right-0 bottom-0 left-0 z-60 flex h-[60vh] max-h-[600px] flex-col rounded-none border border-border bg-popover font-mono text-sm shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#30363d] px-3 py-2">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-[#f85149]" />
                 <span className="h-3 w-3 rounded-full bg-[#d29922]" />
@@ -172,7 +172,7 @@ export function Terminal(props: TerminalProps) {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded p-1 text-muted-foreground transition-colors hover:bg-[#21262d] hover:text-foreground"
+                className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Close terminal"
               >
                 <X className="size-4" />
@@ -199,7 +199,7 @@ export function Terminal(props: TerminalProps) {
               ))}
             </div>
 
-            <div className="shrink-0 border-t border-[#30363d] px-3 py-2">
+            <div className="shrink-0 border-t border-border px-3 py-2">
               <div className="flex items-center gap-1">
                 <span className="shrink-0 text-accent">
                   {"visitor@michael:~$ "}

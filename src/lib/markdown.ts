@@ -86,7 +86,9 @@ export const renderMarkdown = async (source: string) => {
     .use(remarkRehype)
     .use(addHeadingIds)
     .use(rehypePrettyCode, {
-      theme: "github-dark",
+      // Cohesive low-chroma dark theme (warm greys + amber) that sits with the
+      // acid-on-dark palette; the code-block surface is themed via globals.css.
+      theme: "vesper",
       keepBackground: false,
     })
     .use(rehypeStringify)

@@ -1,43 +1,15 @@
-import {
-  createDirectus,
-  createItem,
-  readFiles,
-  readItems,
-  rest,
-  staticToken,
-  updateItem,
-  updateSingleton,
-  uploadFiles,
-} from "@directus/sdk"
-import { randomUUID } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { basename, resolve } from "node:path"
 import { stdin as input, stdout as output } from "node:process"
 import { createInterface } from "node:readline/promises"
+import { pathToFileURL } from "node:url"
 
-import type {
-  CareerEntry,
-  DirectusSchema,
-  SiteSettings,
-  TechStackItem,
-} from "../src/lib/types/directus"
+import config from "@payload-config"
+import { getPayload, type Payload } from "payload"
 
-/**
- * Directus validates non-nullable PKs with null DB defaults as `_submitted` on create.
- * Spread order must never let a stray `id: undefined` overwrite a generated UUID (JSON omits
- * undefined, which then fails validation). `id` is always set last.
- */
-function createBodyWithClientUuid(row: Record<string, unknown>) {
-  const body: Record<string, unknown> = { ...row }
-  delete body.id
-  for (const key of Object.keys(body)) {
-    if (body[key] === undefined) delete body[key]
-  }
-  body.id = randomUUID()
-  return body
-}
+import type { CareerEntry, SiteSetting, TechStackItem } from "../src/payload-types"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse") as (
@@ -61,7 +33,7 @@ type ParsedTech = Pick<
   "name" | "icon_slug" | "experience_years" | "context" | "sort_order"
 >
 
-type ParsedSitePatch = Pick<SiteSettings, "tagline" | "bio_markdown">
+type ParsedSitePatch = Pick<SiteSetting, "tagline" | "bio_markdown">
 
 type DryRunPayload = {
   career_entries: ParsedCareer[]
@@ -171,17 +143,6 @@ function parseEnvLine(line: string): [string, string] | null {
     }
   }
   return [key, value]
-}
-
-function getDirectusUrl() {
-  const url =
-    process.env.DIRECTUS_INTERNAL_URL ?? process.env.NEXT_PUBLIC_DIRECTUS_URL
-  if (!url) {
-    throw new Error(
-      "NEXT_PUBLIC_DIRECTUS_URL is required (or set DIRECTUS_INTERNAL_URL for the import script)."
-    )
-  }
-  return url.replace(/\/$/, "")
 }
 
 function parseFlexibleDateToIso(raw: string) {
@@ -481,153 +442,176 @@ function printSummaryTable(
   }
 }
 
-async function main() {
-  loadOptionalEnvFiles()
+type ImportSummaryRow = { collection: string; created: number; updated: number }
 
-  const resumePath = process.env.RESUME_PDF_PATH
-  const adminToken = process.env.DIRECTUS_ADMIN_TOKEN
-  if (!resumePath) {
-    throw new Error(
-      "RESUME_PDF_PATH is required. Set it in .env or the environment before running."
-    )
-  }
-  if (!adminToken) {
-    throw new Error(
-      "DIRECTUS_ADMIN_TOKEN is required. Create an admin static token in Directus (Settings → Access Tokens) and set it before running."
-    )
-  }
-
-  const directusUrl = getDirectusUrl()
-  const absoluteResumePath = resolve(process.cwd(), resumePath)
-  const pdfBuffer = await readFile(absoluteResumePath)
-  const { text } = await pdfParse(pdfBuffer)
-  const payload = parseResumeText(text)
-
-  console.log(JSON.stringify(payload, null, 2))
-
-  const ok = await confirmProceed()
-  if (!ok) {
-    console.log("Aborted. No changes were written to Directus.")
-    process.exit(0)
-  }
-
-  const client = createDirectus<DirectusSchema>(directusUrl)
-    .with(staticToken(adminToken))
-    .with(rest())
-
-  const fileName = basename(absoluteResumePath)
-
-  const existingFileRows = await client.request(
-    readFiles({
-      filter: { filename_download: { _eq: fileName } },
+/**
+ * Write path: pushes parsed resume data into Payload via the Local API.
+ *
+ * Extracted from `main()` so the create / update / updateGlobal code path can be
+ * exercised directly (e.g. from a verification harness feeding mock parsed data)
+ * without re-parsing a PDF or running the interactive confirm prompt.
+ *
+ * Upsert semantics:
+ *   - career-entries:   matched on role + company
+ *   - tech-stack-items: matched on name
+ *   - media (resume PDF): matched on filename, reused if already uploaded
+ *   - site-settings:    single global, always updated
+ *
+ * All writes run with `overrideAccess: true`, so no admin auth/token is required
+ * (the Local API bypasses access control for trusted server-side callers).
+ */
+export async function importToPayload(
+  payload: Payload,
+  parsed: DryRunPayload,
+  resumeFilePath?: string
+): Promise<ImportSummaryRow[]> {
+  // Upsert the resume PDF into the media collection (idempotent by filename).
+  let resumeMediaId: number | null = null
+  if (resumeFilePath) {
+    const fileName = basename(resumeFilePath)
+    const existingMedia = await payload.find({
+      collection: "media",
+      where: { filename: { equals: fileName } },
       limit: 1,
-      fields: ["id"],
+      depth: 0,
+      overrideAccess: true,
     })
-  )
-  const existingFileId = existingFileRows[0]?.id
-
-  let fileId: string | null =
-    typeof existingFileId === "string" ? existingFileId : null
-
-  if (!fileId) {
-    const formData = new FormData()
-    formData.append("file", new Blob([pdfBuffer]), fileName)
-
-    const uploaded = await client.request(uploadFiles(formData))
-    fileId =
-      uploaded &&
-      typeof uploaded === "object" &&
-      "id" in uploaded &&
-      typeof uploaded.id === "string"
-        ? uploaded.id
-        : Array.isArray(uploaded) &&
-            uploaded[0] &&
-            typeof uploaded[0].id === "string"
-          ? uploaded[0].id
-          : null
-
-    if (!fileId) {
-      throw new Error(
-        "File upload succeeded but no file id was returned. Check the Directus files response shape."
-      )
+    resumeMediaId = existingMedia.docs[0]?.id ?? null
+    if (resumeMediaId == null) {
+      const created = await payload.create({
+        collection: "media",
+        data: { alt: "Resume PDF" },
+        filePath: resumeFilePath,
+        overrideAccess: true,
+      })
+      resumeMediaId = created.id
     }
   }
 
   const careerStats = { created: 0, updated: 0 }
-  for (const entry of payload.career_entries) {
-    const existing = await client.request(
-      readItems("career_entries", {
-        filter: {
-          _and: [
-            { role: { _eq: entry.role } },
-            { company: { _eq: entry.company } },
-          ],
-        },
-        limit: 1,
-        fields: ["id"],
-      })
-    )
-    const row = existing[0]
-    if (row?.id) {
+  for (const entry of parsed.career_entries) {
+    const existing = await payload.find({
+      collection: "career-entries",
+      where: {
+        and: [
+          { role: { equals: entry.role } },
+          { company: { equals: entry.company } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const row = existing.docs[0]
+    if (row) {
+      // Never overwrite a manually curated homepage-highlight flag on update.
       const { is_homepage_highlight, ...careerUpdate } = entry
       void is_homepage_highlight
-      await client.request(updateItem("career_entries", row.id, careerUpdate))
+      await payload.update({
+        collection: "career-entries",
+        id: row.id,
+        data: careerUpdate,
+        overrideAccess: true,
+      })
       careerStats.updated++
     } else {
-      await client.request(
-        createItem(
-          "career_entries",
-          createBodyWithClientUuid({ ...entry }) as never
-        )
-      )
+      await payload.create({
+        collection: "career-entries",
+        data: entry,
+        overrideAccess: true,
+      })
       careerStats.created++
     }
   }
 
   const techStats = { created: 0, updated: 0 }
-  for (const item of payload.tech_stack_items) {
-    const existing = await client.request(
-      readItems("tech_stack_items", {
-        filter: { name: { _eq: item.name } },
-        limit: 1,
-        fields: ["id"],
+  for (const item of parsed.tech_stack_items) {
+    const existing = await payload.find({
+      collection: "tech-stack-items",
+      where: { name: { equals: item.name } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const row = existing.docs[0]
+    if (row) {
+      await payload.update({
+        collection: "tech-stack-items",
+        id: row.id,
+        data: item,
+        overrideAccess: true,
       })
-    )
-    const row = existing[0]
-    if (row?.id) {
-      await client.request(updateItem("tech_stack_items", row.id, item))
       techStats.updated++
     } else {
-      await client.request(
-        createItem(
-          "tech_stack_items",
-          createBodyWithClientUuid({ ...item }) as never
-        )
-      )
+      await payload.create({
+        collection: "tech-stack-items",
+        data: item,
+        overrideAccess: true,
+      })
       techStats.created++
     }
   }
 
-  const siteSettingsPatch = {
-    resume_pdf: fileId,
-    ...(payload.site_settings.bio_markdown != null
-      ? { bio_markdown: payload.site_settings.bio_markdown }
+  const siteData: Partial<
+    Pick<SiteSetting, "resume_pdf" | "bio_markdown" | "tagline">
+  > = {
+    ...(resumeMediaId != null ? { resume_pdf: resumeMediaId } : {}),
+    ...(parsed.site_settings.bio_markdown != null
+      ? { bio_markdown: parsed.site_settings.bio_markdown }
       : {}),
-    ...(payload.site_settings.tagline != null
-      ? { tagline: payload.site_settings.tagline }
+    ...(parsed.site_settings.tagline != null
+      ? { tagline: parsed.site_settings.tagline }
       : {}),
   }
+  await payload.updateGlobal({
+    slug: "site-settings",
+    data: siteData,
+    overrideAccess: true,
+  })
 
-  await client.request(updateSingleton("site_settings", siteSettingsPatch))
-
-  printSummaryTable([
-    { collection: "career_entries", ...careerStats },
-    { collection: "tech_stack_items", ...techStats },
-    { collection: "site_settings", created: 0, updated: 1 },
-  ])
+  return [
+    { collection: "career-entries", ...careerStats },
+    { collection: "tech-stack-items", ...techStats },
+    { collection: "site-settings", created: 0, updated: 1 },
+  ]
 }
 
-main().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+async function main() {
+  loadOptionalEnvFiles()
+
+  const resumePath = process.env.RESUME_PDF_PATH
+  if (!resumePath) {
+    throw new Error(
+      "RESUME_PDF_PATH is required. Set it in .env or the environment before running."
+    )
+  }
+
+  const absoluteResumePath = resolve(process.cwd(), resumePath)
+  const pdfBuffer = await readFile(absoluteResumePath)
+  const { text } = await pdfParse(pdfBuffer)
+  const parsed = parseResumeText(text)
+
+  console.log(JSON.stringify(parsed, null, 2))
+
+  const ok = await confirmProceed()
+  if (!ok) {
+    console.log("Aborted. No changes were written to Payload.")
+    process.exit(0)
+  }
+
+  const payload = await getPayload({ config })
+  const summary = await importToPayload(payload, parsed, absoluteResumePath)
+
+  printSummaryTable(summary)
+}
+
+const isMain = import.meta.url === pathToFileURL(process.argv[1] ?? "").href
+
+if (isMain) {
+  main()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error(err)
+      process.exit(1)
+    })
+}

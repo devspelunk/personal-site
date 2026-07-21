@@ -5,7 +5,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        mono: ["'Courier New'", "monospace"],
+        mono: ["var(--font-jetbrains-mono)", "monospace"],
+        display: ["var(--font-michroma)", "sans-serif"],
       },
     },
   },

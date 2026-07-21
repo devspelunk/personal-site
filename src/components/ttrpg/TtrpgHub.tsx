@@ -21,35 +21,29 @@ import type {
   TtrpgHomebrew,
   TtrpgJournal,
   TtrpgLore,
-} from "@/lib/types/directus"
+} from "@/payload-types"
 
 export type CampaignListRow = Pick<Campaign, "id" | "name" | "slug">
 
 export type JournalListRow = Pick<
   TtrpgJournal,
-  | "id"
-  | "slug"
-  | "title"
-  | "session_number"
-  | "excerpt"
-  | "session_date"
-  | "campaign_id"
-> & { campaignName: string }
+  "id" | "slug" | "title" | "session_number" | "excerpt" | "session_date"
+> & { campaignId: number | null; campaignName: string }
 
 export type CharacterListRow = Pick<
   TtrpgCharacter,
-  "id" | "slug" | "name" | "class_role" | "portrait" | "campaign_id"
-> & { campaignName: string }
+  "id" | "slug" | "name" | "class_role"
+> & { campaignId: number | null; campaignName: string; portraitUrl?: string }
 
 export type LoreListRow = Pick<
   TtrpgLore,
-  "id" | "slug" | "title" | "category" | "campaign_id"
-> & { campaignName: string }
+  "id" | "slug" | "title" | "category"
+> & { campaignId: number | null; campaignName: string }
 
 export type HomebrewListRow = Pick<
   TtrpgHomebrew,
-  "id" | "slug" | "title" | "type" | "campaign_id"
-> & { campaignName: string }
+  "id" | "slug" | "title" | "type"
+> & { campaignId: number | null; campaignName: string }
 
 const TAB_VALUES = ["journals", "characters", "lore", "homebrew"] as const
 type TabValue = (typeof TAB_VALUES)[number]
@@ -66,12 +60,12 @@ function buildTtrpgQuery(tab: TabValue, campaign: string) {
   return s ? `?${s}` : ""
 }
 
-function filterByCampaign<T extends { campaign_id: string | null }>(
+function filterByCampaign<T extends { campaignId: number | null }>(
   items: T[],
   campaignId: string
 ) {
   if (campaignId === "all") return items
-  return items.filter((i) => i.campaign_id === campaignId)
+  return items.filter((i) => String(i.campaignId) === campaignId)
 }
 
 export function TtrpgHub({
@@ -97,7 +91,7 @@ export function TtrpgHub({
 
   const campaignParam = searchParams.get("campaign") ?? "all"
   const campaignIds = useMemo(
-    () => new Set(campaigns.map((c) => c.id)),
+    () => new Set(campaigns.map((c) => String(c.id))),
     [campaigns]
   )
   const selectedCampaign =
@@ -142,7 +136,7 @@ export function TtrpgHub({
           <SelectContent>
             <SelectItem value="all">All Campaigns</SelectItem>
             {campaigns.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
+              <SelectItem key={c.id} value={String(c.id)}>
                 {c.name}
               </SelectItem>
             ))}
@@ -174,7 +168,7 @@ export function TtrpgHub({
               slug={c.slug}
               name={c.name}
               class_role={c.class_role}
-              portrait={c.portrait}
+              portraitUrl={c.portraitUrl}
               campaignName={c.campaignName}
             />
           ))}
