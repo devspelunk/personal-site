@@ -7,7 +7,7 @@ import {
   revalidateCollectionAfterDelete,
 } from "../lib/revalidate-hooks"
 
-// Drafts enabled: Directus `status` maps to Payload's `_status` version field.
+// Drafts enabled: draft/published state maps to Payload's `_status` version field.
 export const Projects: CollectionConfig = {
   slug: "projects",
   access: {
@@ -83,7 +83,7 @@ export const Projects: CollectionConfig = {
       type: "number",
     },
     {
-      // Directus junction table projects_tags becomes a hasMany relationship.
+      // Tags are modeled as a hasMany relationship.
       name: "tags",
       type: "relationship",
       relationTo: "tags",

@@ -7,7 +7,7 @@ import {
   revalidateCollectionAfterDelete,
 } from "../lib/revalidate-hooks"
 
-// Drafts enabled: Directus `status` maps to Payload's `_status` version field.
+// Drafts enabled: draft/published state maps to Payload's `_status` version field.
 export const TtrpgCharacters: CollectionConfig = {
   slug: "ttrpg-characters",
   access: {

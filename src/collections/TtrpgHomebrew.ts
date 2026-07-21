@@ -7,7 +7,7 @@ import {
   revalidateCollectionAfterDelete,
 } from "../lib/revalidate-hooks"
 
-// Drafts enabled: Directus `status` maps to Payload's `_status` version field.
+// Drafts enabled: draft/published state maps to Payload's `_status` version field.
 export const TtrpgHomebrew: CollectionConfig = {
   slug: "ttrpg-homebrew",
   access: {
@@ -47,7 +47,7 @@ export const TtrpgHomebrew: CollectionConfig = {
       relationTo: "campaigns",
     },
     {
-      // Required enum in Directus (is_nullable: false, no default).
+      // Required enum (not nullable, no default).
       name: "type",
       type: "select",
       required: true,

@@ -7,7 +7,7 @@ import {
   revalidateCollectionAfterDelete,
 } from "../lib/revalidate-hooks"
 
-// Drafts enabled: Directus `status` maps to Payload's `_status` version field.
+// Drafts enabled: draft/published state maps to Payload's `_status` version field.
 export const TtrpgJournals: CollectionConfig = {
   slug: "ttrpg-journals",
   access: {
@@ -42,7 +42,7 @@ export const TtrpgJournals: CollectionConfig = {
       index: true,
     },
     {
-      // Directus campaign_id (m2o -> campaigns, SET NULL on delete).
+      // Many-to-one relationship to campaigns (SET NULL on delete).
       name: "campaign",
       type: "relationship",
       relationTo: "campaigns",

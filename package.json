@@ -15,7 +15,6 @@
     "import-resume": "tsx scripts/import-resume.ts"
   },
   "dependencies": {
-    "@directus/sdk": "^21.2.0",
     "@payloadcms/db-postgres": "3.86.0",
     "@payloadcms/next": "3.86.0",
     "@phosphor-icons/react": "^2.1.10",

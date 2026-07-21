@@ -3,8 +3,8 @@
  * must be revalidated when a document in that collection changes.
  *
  * Keyed on the **kebab-case Payload slugs** (`blog-posts`, `ttrpg-journals`,
- * `career-entries`, `site-settings`, …) — NOT the legacy snake_case Directus
- * collection names. An unknown slug returns an empty array (silent no-op)
+ * `career-entries`, `site-settings`, …). An unknown slug returns an empty
+ * array (silent no-op)
  * rather than throwing, so a collection that doesn't need revalidation (e.g.
  * `tags`, `media`, `users`) simply produces no paths.
  *

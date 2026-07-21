@@ -36,7 +36,7 @@ export const CareerEntries: CollectionConfig = {
       required: true,
     },
     {
-      // Stored as strings in Directus (e.g. "2020", "Jan 2020"), not timestamps.
+      // Stored as strings (e.g. "2020", "Jan 2020"), not timestamps.
       name: "date_start",
       type: "text",
       required: true,

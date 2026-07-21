@@ -3,7 +3,7 @@ import type { GlobalConfig } from "payload"
 import { authenticated } from "../access/authenticated"
 import { revalidateGlobalAfterChange } from "../lib/revalidate-hooks"
 
-// Mirrors the Directus `site_settings` singleton.
+// Site-wide settings singleton (site chrome, resume link, social links).
 export const SiteSettings: GlobalConfig = {
   slug: "site-settings",
   access: {

@@ -451,7 +451,7 @@ type ImportSummaryRow = { collection: string; created: number; updated: number }
  * exercised directly (e.g. from a verification harness feeding mock parsed data)
  * without re-parsing a PDF or running the interactive confirm prompt.
  *
- * Upsert semantics mirror the previous Directus implementation:
+ * Upsert semantics:
  *   - career-entries:   matched on role + company
  *   - tech-stack-items: matched on name
  *   - media (resume PDF): matched on filename, reused if already uploaded

@@ -35,7 +35,7 @@ export const TechStackItems: CollectionConfig = {
       type: "text",
     },
     {
-      // String in Directus (e.g. "5+"), not a number.
+      // Stored as a string (e.g. "5+"), not a number.
       name: "experience_years",
       type: "text",
     },

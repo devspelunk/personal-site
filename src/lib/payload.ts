@@ -5,7 +5,7 @@ import { getPayload as getPayloadInstance, type Payload } from "payload"
 
 /**
  * Thin, memoized Payload accessor for server components and other server-only
- * code — the Payload analogue of `createDirectusServerClient`.
+ * code — the single entry point for server-side Payload access.
  *
  * Payload's own `getPayload` already caches on the module scope (and handles
  * HMR reloads in dev), but we additionally memoize the init promise here so

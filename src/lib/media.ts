@@ -11,9 +11,9 @@ export type MediaValue = number | Media | null | undefined
  * when the field is empty or was not populated (still a bare id), so callers can
  * conditionally render `<Image>` / `<img>` / links.
  *
- * Replaces the Directus `getAssetUrl(id)` helper — Payload upload fields carry
- * the URL on the populated object (`media.url`, e.g. `/api/media/file/<name>`)
- * rather than being built from an asset id, so ensure queries use `depth >= 1`.
+ * Payload upload fields carry the URL on the populated object (`media.url`,
+ * e.g. `/api/media/file/<name>`) rather than being built from an asset id, so
+ * ensure queries use `depth >= 1`.
  */
 export function getMediaUrl(value: MediaValue): string | undefined {
   return value && typeof value === "object" ? (value.url ?? undefined) : undefined

@@ -7,8 +7,8 @@ import {
   revalidateCollectionAfterDelete,
 } from "../lib/revalidate-hooks"
 
-// Drafts enabled: the Directus `status` (draft/published) is represented by
-// Payload's built-in `_status` version field, so no explicit status field here.
+// Drafts enabled: draft/published state is represented by Payload's built-in
+// `_status` version field, so no explicit status field here.
 export const BlogPosts: CollectionConfig = {
   slug: "blog-posts",
   access: {
@@ -65,7 +65,7 @@ export const BlogPosts: CollectionConfig = {
       type: "date",
     },
     {
-      // Directus junction table blog_posts_tags becomes a hasMany relationship.
+      // Tags are modeled as a hasMany relationship.
       name: "tags",
       type: "relationship",
       relationTo: "tags",
