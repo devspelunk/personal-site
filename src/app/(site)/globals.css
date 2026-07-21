@@ -102,6 +102,50 @@
   .section-index {
     @apply font-display text-5xl leading-none tracking-tight text-muted-foreground tabular-nums;
   }
+
+  /*
+   * T8b ornament — CRT scanline overlay. Fixed, full-viewport, non-interactive.
+   * Sits above page content (z-40) but below the terminal/command-palette
+   * modals (z-50/z-60) so their text stays crisp. `pointer-events: none` keeps
+   * every click passing through to the UI beneath it. Static (no animation),
+   * so it renders identically under `prefers-reduced-motion: reduce`.
+   */
+  .ornament-scanlines {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.1) 0px,
+      rgba(0, 0, 0, 0.1) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  /*
+   * T8b ornament — barcode motif for the DataStrip decal. Uses `currentColor`
+   * so the bar colour follows the element's text colour (e.g. `text-accent`).
+   */
+  .ornament-barcode {
+    background-image: repeating-linear-gradient(
+      90deg,
+      currentColor 0px,
+      currentColor 1px,
+      transparent 1px,
+      transparent 2px,
+      currentColor 2px,
+      currentColor 4px,
+      transparent 4px,
+      transparent 5px,
+      currentColor 5px,
+      currentColor 6px,
+      transparent 6px,
+      transparent 9px
+    );
+    background-repeat: repeat-x;
+  }
 }
 
 @keyframes blink {
@@ -111,6 +155,24 @@
   }
   50% {
     opacity: 0;
+  }
+}
+
+/*
+ * T8b ornament — authoritative reduced-motion gate. framer-motion's
+ * useReducedMotion() only captures a one-time snapshot and can miss a
+ * pre-set preference, so this CSS is the source of truth: it neutralises the
+ * glitch / chromatic-aberration hover (chromatic box-shadow on cards, RGB-split
+ * ghost copies on headings) regardless of how the hook resolved. Static
+ * ornaments (scanlines, registration marks, DataStrip, vector accents) are
+ * intentionally left untouched.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ornament-glitch-card {
+    box-shadow: none !important;
+  }
+  .ornament-glitch-ghost {
+    display: none !important;
   }
 }
 

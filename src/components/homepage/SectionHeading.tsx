@@ -1,3 +1,5 @@
+import { VectorAccent } from "@/components/ornament/VectorAccent"
+
 export const SectionHeading = ({
   command,
   variant = "section",
@@ -6,9 +8,15 @@ export const SectionHeading = ({
   /** Use `page` for route-level headings (single document h1). */
   variant?: "page" | "section"
 }) => {
-  const className = "mb-6 font-mono text-lg text-primary"
+  const className = "mb-6 flex items-center gap-2 font-mono text-lg text-primary"
+  const content = (
+    <>
+      <VectorAccent shape="star" className="size-3 shrink-0 text-accent" />
+      <span>{command}</span>
+    </>
+  )
   if (variant === "page") {
-    return <h1 className={className}>{command}</h1>
+    return <h1 className={className}>{content}</h1>
   }
-  return <h2 className={className}>{command}</h2>
+  return <h2 className={className}>{content}</h2>
 }

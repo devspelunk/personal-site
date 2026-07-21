@@ -86,7 +86,7 @@ export function BlogList({
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {filteredPosts.map((post) => (
+        {filteredPosts.map((post, i) => (
           <BlogPostCard
             key={post.id}
             slug={post.slug}
@@ -95,6 +95,7 @@ export function BlogList({
             date_published={post.date_published}
             readTime={post.readTime}
             tags={post.tags}
+            index={i}
           />
         ))}
       </div>

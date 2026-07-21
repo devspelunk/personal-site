@@ -10,6 +10,8 @@ import { renderMarkdown } from "@/lib/markdown"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass, formatDate } from "@/lib/utils"
+import { DataStrip, formatDataStripCode } from "@/components/ornament/DataStrip"
+import { GlitchText } from "@/components/ornament/Glitch"
 import type { BlogPost, Tag } from "@/payload-types"
 
 export const revalidate = 3600
@@ -169,9 +171,17 @@ export default async function BlogPostPage({
             />
 
             <header className="mt-4 mb-8">
-              <h1 className="mb-4 font-display text-3xl tracking-tight text-foreground uppercase">
+              <DataStrip
+                code={formatDataStripCode("BLOG", post.slug)}
+                items={[post.slug]}
+                className="mb-4"
+              />
+              <GlitchText
+                as="h1"
+                className="mb-4 font-display text-3xl tracking-tight text-foreground uppercase"
+              >
                 {post.title}
-              </h1>
+              </GlitchText>
               <p className="text-sm text-muted-foreground">
                 <span className="text-foreground">{authorName}</span>
                 {" · "}

@@ -10,6 +10,7 @@ import { CommandPalette } from "@/components/CommandPalette"
 import { CommandPaletteProvider } from "@/components/CommandPaletteContext"
 import { Terminal } from "@/components/Terminal"
 import { TerminalProvider } from "@/components/TerminalContext"
+import { Scanlines } from "@/components/ornament/Scanlines"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import type { SiteSetting } from "@/payload-types"
@@ -163,6 +164,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
+        <Scanlines />
         {umamiId && umamiSrc ? (
           <Script
             src={umamiSrc}

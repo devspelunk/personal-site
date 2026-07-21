@@ -7,6 +7,7 @@ import { HeroCodeAnimation } from "@/components/homepage/HeroCodeAnimation"
 import { InteractiveTechStack } from "@/components/homepage/InteractiveTechStack"
 import { LatestBlogPosts } from "@/components/homepage/LatestBlogPosts"
 import { Testimonials } from "@/components/homepage/Testimonials"
+import { VectorAccent } from "@/components/ornament/VectorAccent"
 import { fetchGitHubContributions } from "@/lib/github"
 import { jsonLdScriptHtml } from "@/lib/jsonld"
 import { getMediaUrl } from "@/lib/media"
@@ -180,6 +181,11 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: jsonLdScriptHtml(personJsonLd) }}
       />
       <section className="py-12">
+        <div className="mx-auto mb-6 flex max-w-2xl items-center gap-3 text-accent">
+          <span className="h-px flex-1 bg-border" aria-hidden />
+          <VectorAccent shape="star" className="size-4 shrink-0" />
+          <span className="h-px flex-1 bg-border" aria-hidden />
+        </div>
         <HeroCodeAnimation
           fullName={fullName ?? "Engineer"}
           tagline={tagline ?? "Building things that matter."}

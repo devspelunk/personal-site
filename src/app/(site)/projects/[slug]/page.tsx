@@ -10,6 +10,8 @@ import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass } from "@/lib/utils"
+import { DataStrip, formatDataStripCode } from "@/components/ornament/DataStrip"
+import { GlitchText } from "@/components/ornament/Glitch"
 import type { Project, Tag } from "@/payload-types"
 
 export const revalidate = 3600
@@ -164,9 +166,17 @@ export default async function ProjectDetailPage({
         />
 
         <article className="mt-8">
-          <h1 className="mb-6 font-display text-3xl tracking-tight text-foreground uppercase">
+          <DataStrip
+            code={formatDataStripCode("PROJ", project.slug)}
+            items={[project.slug]}
+            className="mb-4"
+          />
+          <GlitchText
+            as="h1"
+            className="mb-6 font-display text-3xl tracking-tight text-foreground uppercase"
+          >
             {project.title}
-          </h1>
+          </GlitchText>
 
           {project.is_featured ? (
             <>
