@@ -21,7 +21,10 @@ export const Media: CollectionConfig = {
     delete: authenticated,
   },
   upload: {
-    staticDir: path.resolve(dirname, "../../media"),
+    // Absolute path in the container (`PAYLOAD_MEDIA_DIR=/app/media`, the mounted
+    // volume) so uploads never depend on the compiled standalone-chunk layout;
+    // falls back to the repo-relative dir for local dev.
+    staticDir: process.env.PAYLOAD_MEDIA_DIR ?? path.resolve(dirname, "../../media"),
     // Images for avatars/thumbnails/portraits, plus PDF for resume_pdf.
     mimeTypes: ["image/*", "application/pdf"],
   },

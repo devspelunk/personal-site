@@ -46,7 +46,7 @@ export const Testimonials = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="rounded-lg border border-border border-l-primary bg-card p-6"
+            className="rounded-none border border-border border-l-primary bg-card p-6"
             style={{ borderLeftWidth: 3 }}
           >
             <blockquote className="mb-4 text-sm leading-relaxed text-foreground italic">

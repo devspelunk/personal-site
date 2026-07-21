@@ -169,7 +169,7 @@ export default async function TtrpgCharacterPage({
             <h2 className="mb-2 font-mono text-lg font-semibold text-primary">
               Stats
             </h2>
-            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/50 p-4 font-mono text-sm whitespace-pre-wrap">
+            <pre className="overflow-x-auto rounded-none border border-border bg-muted/50 p-4 font-mono text-sm whitespace-pre-wrap">
               {character.stats_overview}
             </pre>
           </section>

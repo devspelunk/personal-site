@@ -20,7 +20,7 @@ export function CharacterCard({
     <GlitchCard className="h-full">
       <Link
         href={`/ttrpg/characters/${slug}`}
-        className="flex h-full flex-col items-center rounded-lg border border-border bg-card p-5 text-center transition-colors hover:border-primary"
+        className="flex h-full flex-col items-center rounded-none border border-border bg-card p-5 text-center transition-colors hover:border-primary"
       >
         <div className="mb-3 size-24 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
           {portraitUrl ? (

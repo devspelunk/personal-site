@@ -157,7 +157,7 @@ export function Terminal(props: TerminalProps) {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className="fixed right-0 bottom-0 left-0 z-60 flex h-[60vh] max-h-[600px] flex-col rounded-t-lg border border-border bg-popover font-mono text-sm shadow-lg"
+            className="fixed right-0 bottom-0 left-0 z-60 flex h-[60vh] max-h-[600px] flex-col rounded-none border border-border bg-popover font-mono text-sm shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2">

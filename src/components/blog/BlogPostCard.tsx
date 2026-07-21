@@ -39,7 +39,7 @@ export function BlogPostCard({
     <GlitchCard>
       <Link
         href={`/blog/${slug}`}
-        className="block h-full rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary"
+        className="block h-full rounded-none border border-border bg-card p-5 transition-colors hover:border-primary"
       >
         <h3 className="mb-2 font-mono text-base font-semibold text-foreground">
           {title}

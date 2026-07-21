@@ -15,7 +15,7 @@ export const GitHubHeatmap = ({
     <div>
       <SectionHeading command="$ git log --graph" />
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card p-6">
+      <div className="overflow-x-auto rounded-none border border-border bg-card p-6">
         <ActivityCalendar
           data={contributions}
           colorScheme="dark"

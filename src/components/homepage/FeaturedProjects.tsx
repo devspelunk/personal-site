@@ -40,10 +40,10 @@ export const FeaturedProjects = ({
           <GlitchCard>
             <Link
               href={`/projects/${project.slug}`}
-              className="block h-full rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary"
+              className="block h-full rounded-none border border-border bg-card p-5 transition-colors hover:border-primary"
             >
               {project.thumbnail && (
-                <div className="relative mb-4 aspect-video overflow-hidden rounded-md">
+                <div className="relative mb-4 aspect-video overflow-hidden rounded-none">
                   <Image
                     src={project.thumbnail}
                     alt={project.title}

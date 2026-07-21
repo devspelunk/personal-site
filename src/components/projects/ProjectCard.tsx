@@ -36,12 +36,12 @@ export function ProjectCard({
       <GlitchCard>
         <Link
           href={`/projects/${slug}`}
-          className="block h-full rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary"
+          className="block h-full rounded-none border border-border bg-card p-5 transition-colors hover:border-primary"
         >
           {thumbnail && (
             <div
               className={cn(
-                "relative mb-4 w-full overflow-hidden rounded-md",
+                "relative mb-4 w-full overflow-hidden rounded-none",
                 featured ? "aspect-video" : "h-32"
               )}
             >

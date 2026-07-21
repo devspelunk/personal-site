@@ -216,7 +216,7 @@ export default async function ProjectDetailPage({
               {linksSection}
 
               {thumbnailUrl && (
-                <div className="relative mt-10 aspect-video w-full max-w-4xl overflow-hidden rounded-lg border border-border">
+                <div className="relative mt-10 aspect-video w-full max-w-4xl overflow-hidden rounded-none border border-border">
                   <Image
                     src={thumbnailUrl}
                     alt={project.title}
@@ -230,7 +230,7 @@ export default async function ProjectDetailPage({
           ) : (
             <>
               {thumbnailUrl && (
-                <div className="relative mb-8 aspect-video w-full max-w-3xl overflow-hidden rounded-lg border border-border">
+                <div className="relative mb-8 aspect-video w-full max-w-3xl overflow-hidden rounded-none border border-border">
                   <Image
                     src={thumbnailUrl}
                     alt={project.title}

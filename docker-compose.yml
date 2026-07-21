@@ -53,6 +53,7 @@ services:
       NEXT_PUBLIC_FEATURE_MUSIC: ${NEXT_PUBLIC_FEATURE_MUSIC}
       DATABASE_URI: ${DATABASE_URI}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      PAYLOAD_MEDIA_DIR: /app/media
     volumes:
       - media:/app/media
     networks:
