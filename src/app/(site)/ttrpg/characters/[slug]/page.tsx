@@ -141,7 +141,7 @@ export default async function TtrpgCharacterPage({
             )}
           </div>
           <header className="min-w-0 flex-1">
-            <h1 className="mb-2 font-mono text-3xl font-semibold text-foreground">
+            <h1 className="mb-2 font-display text-3xl tracking-tight text-foreground uppercase">
               {character.name}
             </h1>
             {character.class_role && (

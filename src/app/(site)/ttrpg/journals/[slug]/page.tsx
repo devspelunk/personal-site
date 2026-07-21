@@ -118,7 +118,7 @@ export default async function TtrpgJournalPage({
         />
 
         <header className="mt-4 mb-8">
-          <h1 className="mb-4 font-mono text-3xl font-semibold text-foreground">
+          <h1 className="mb-4 font-display text-3xl tracking-tight text-foreground uppercase">
             {titleLine}
           </h1>
           <p className="text-sm text-muted-foreground">

@@ -4,52 +4,62 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Single acid-on-dark foundation (Vectorheart / Y2K / Marathon).
+ * `:root` and `.dark` are intentionally identical — there is only one theme.
+ * Token values are starting points to be tuned in a later visual pass.
+ */
 :root {
-  --background: #0d1117;
-  --foreground: #c9d1d9;
-  --card: #161b22;
-  --card-foreground: #c9d1d9;
-  --popover: #161b22;
-  --popover-foreground: #c9d1d9;
-  --primary: #58a6ff;
-  --primary-foreground: #0d1117;
-  --secondary: #21262d;
-  --secondary-foreground: #c9d1d9;
-  --muted: #21262d;
-  --muted-foreground: #8b949e;
-  --accent: #3fb950;
-  --accent-foreground: #0d1117;
-  --destructive: #f85149;
-  --border: #30363d;
-  --input: #30363d;
-  --ring: #58a6ff;
-  --radius: 0.625rem;
+  --background: #0a0b09;
+  --foreground: #f2f2ef;
+  --card: #111310;
+  --card-foreground: #f2f2ef;
+  --popover: #111310;
+  --popover-foreground: #f2f2ef;
+  --primary: #c8ff00;
+  --primary-foreground: #0a0b09;
+  --secondary: #1a1c18;
+  --secondary-foreground: #f2f2ef;
+  --muted: #1a1c18;
+  --muted-foreground: #8a9188;
+  --accent: #ff4d00;
+  --accent-foreground: #0a0b09;
+  --destructive: #ff2e2e;
+  /* Faint decorative hairline (~1.4:1) - NOT for interactive boundaries. */
+  --border: #2a2e28;
+  /* Interactive boundaries + focus rings need >= 3:1 (WCAG 1.4.11). */
+  --input: #6b7268;
+  --ring: #c8ff00;
+  /* Hard edges: shadcn primitives are square. */
+  --radius: 0rem;
 }
 
 .dark {
-  --background: #0d1117;
-  --foreground: #c9d1d9;
-  --card: #161b22;
-  --card-foreground: #c9d1d9;
-  --popover: #161b22;
-  --popover-foreground: #c9d1d9;
-  --primary: #58a6ff;
-  --primary-foreground: #0d1117;
-  --secondary: #21262d;
-  --secondary-foreground: #c9d1d9;
-  --muted: #21262d;
-  --muted-foreground: #8b949e;
-  --accent: #3fb950;
-  --accent-foreground: #0d1117;
-  --destructive: #f85149;
-  --border: #30363d;
-  --input: #30363d;
-  --ring: #58a6ff;
+  --background: #0a0b09;
+  --foreground: #f2f2ef;
+  --card: #111310;
+  --card-foreground: #f2f2ef;
+  --popover: #111310;
+  --popover-foreground: #f2f2ef;
+  --primary: #c8ff00;
+  --primary-foreground: #0a0b09;
+  --secondary: #1a1c18;
+  --secondary-foreground: #f2f2ef;
+  --muted: #1a1c18;
+  --muted-foreground: #8a9188;
+  --accent: #ff4d00;
+  --accent-foreground: #0a0b09;
+  --destructive: #ff2e2e;
+  --border: #2a2e28;
+  --input: #6b7268;
+  --ring: #c8ff00;
 }
 
 @theme inline {
-  --font-sans: var(--font-mono);
-  --font-mono: "Courier New", monospace;
+  /* JetBrains Mono is the body voice; Michroma is the display voice. */
+  --font-sans: var(--font-jetbrains-mono);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-michroma);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -84,6 +94,16 @@
   }
 }
 
+@layer components {
+  /*
+   * Oversized numeric section index (e.g. "01 /"). Foundation-only helper;
+   * ornament components that consume it are T8b.
+   */
+  .section-index {
+    @apply font-display text-5xl leading-none tracking-tight text-muted-foreground tabular-nums;
+  }
+}
+
 @keyframes blink {
   0%,
   100% {
@@ -92,4 +112,29 @@
   50% {
     opacity: 0;
   }
+}
+
+/* Markdown code blocks (rehype-pretty-code) — acid-on-dark, hard edges */
+[data-rehype-pretty-code-figure] pre {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+[data-rehype-pretty-code-figure] pre code {
+  background: transparent;
+  padding: 0;
+}
+[data-rehype-pretty-code-figure] [data-line] {
+  padding: 0 0.25rem;
+}
+
+/* Inline code */
+:not(pre) > code {
+  border: 1px solid var(--border);
+  background: var(--muted);
+  padding: 0.05em 0.35em;
+  font-size: 0.9em;
 }

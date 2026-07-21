@@ -168,7 +168,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <div className="border-b border-[#21262d]">
+      <div className="border-b border-border">
         <CommandInput
           value={query}
           onValueChange={setQuery}
@@ -211,7 +211,7 @@ export function CommandPalette() {
                           {entry.tags.slice(0, 2).map((t) => (
                             <span
                               key={t}
-                              className="rounded-none border border-[#21262d] px-1 py-0.5"
+                              className="rounded-none border border-border px-1 py-0.5"
                             >
                               {t}
                             </span>

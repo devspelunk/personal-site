@@ -18,26 +18,26 @@ export const HeroCodeAnimation = ({
 }) => {
   const codeLines = [
     { text: "// welcome.ts", color: "text-muted-foreground" },
-    { text: "const ", color: "text-[#ff7b72]", rest: "engineer = {" },
+    { text: "const ", color: "text-primary", rest: "engineer = {" },
     {
       text: `  name: `,
       color: "text-foreground",
       value: `"${fullName}"`,
-      valueColor: "text-[#a5d6ff]",
+      valueColor: "text-accent",
       suffix: ",",
     },
     {
       text: `  role: `,
       color: "text-foreground",
       value: `"${role.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
-      valueColor: "text-[#a5d6ff]",
+      valueColor: "text-accent",
       suffix: ",",
     },
     {
       text: `  focus: `,
       color: "text-foreground",
       value: `"${tagline.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
-      valueColor: "text-[#a5d6ff]",
+      valueColor: "text-accent",
       suffix: ",",
     },
     { text: "};", color: "text-foreground" },
@@ -85,7 +85,7 @@ export const HeroCodeAnimation = ({
                 <>
                   <span className={line.color}>{line.text}</span>
                   <span className="text-foreground">{line.rest}</span>
-                  <span className="text-[#d2a8ff]">{line.fn}</span>
+                  <span className="text-muted-foreground">{line.fn}</span>
                   <span className="text-foreground">{line.fnArgs}</span>
                 </>
               ) : line.value ? (

@@ -164,7 +164,7 @@ export default async function ProjectDetailPage({
         />
 
         <article className="mt-8">
-          <h1 className="mb-6 font-mono text-3xl font-semibold text-foreground">
+          <h1 className="mb-6 font-display text-3xl tracking-tight text-foreground uppercase">
             {project.title}
           </h1>
 

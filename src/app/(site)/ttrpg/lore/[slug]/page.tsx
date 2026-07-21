@@ -123,7 +123,7 @@ export default async function TtrpgLorePage({
         />
 
         <header className="mt-4 mb-8">
-          <h1 className="mb-4 font-mono text-3xl font-semibold text-foreground">
+          <h1 className="mb-4 font-display text-3xl tracking-tight text-foreground uppercase">
             {entry.title}
           </h1>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">

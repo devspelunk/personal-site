@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { JetBrains_Mono, Michroma } from "next/font/google"
 import Script from "next/script"
 
 import "./globals.css"
@@ -12,6 +13,23 @@ import { TerminalProvider } from "@/components/TerminalContext"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import type { SiteSetting } from "@/payload-types"
+
+// Body voice: JetBrains Mono. Exposed as the `--font-jetbrains-mono` CSS
+// variable consumed by the `--font-mono`/`--font-sans` tokens in globals.css.
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jetbrains-mono",
+})
+
+// Display voice: Michroma (wide, technical) for headings/hero. Single 400
+// weight. Exposed as `--font-michroma`, consumed by the `--font-display` token.
+const michroma = Michroma({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--font-michroma",
+})
 
 // Anonymous reads: `overrideAccess: false` runs each collection's
 // `authenticatedOrPublished` access, constraining drafted collections
@@ -139,7 +157,11 @@ export default async function RootLayout({
   const umamiSrc = process.env.NEXT_PUBLIC_UMAMI_URL
 
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`dark ${jetbrainsMono.variable} ${michroma.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-screen bg-background text-foreground antialiased">
         {umamiId && umamiSrc ? (
           <Script
