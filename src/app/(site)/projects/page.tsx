@@ -47,10 +47,9 @@ function toCardData(project: Project): ProjectCardData {
 }
 
 export default async function ProjectsPage() {
-  const payload = await getPayload()
-
   let docs: Project[] = []
   try {
+    const payload = await getPayload()
     // overrideAccess: false enforces published-only for anonymous reads.
     const result = await payload.find({
       collection: "projects",

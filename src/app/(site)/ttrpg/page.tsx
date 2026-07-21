@@ -57,8 +57,6 @@ function resolveCampaign(
 }
 
 export default async function TtrpgPage() {
-  const payload = await getPayload()
-
   let campaigns: CampaignListRow[] = []
   let journals: JournalListRow[] = []
   let characters: CharacterListRow[] = []
@@ -66,6 +64,7 @@ export default async function TtrpgPage() {
   let homebrew: HomebrewListRow[] = []
 
   try {
+    const payload = await getPayload()
     const [campaignsRes, journalsRes, charactersRes, loreRes, homebrewRes] =
       await Promise.all([
         payload.find({

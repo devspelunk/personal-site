@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import Image from "next/image"
-import { notFound } from "next/navigation"
 import { Circle, Github, Linkedin, Mail, X } from "lucide-react"
 
 import { CareerHighlights } from "@/components/homepage/CareerHighlights"
@@ -42,13 +41,14 @@ export const metadata: Metadata = {
 }
 
 export default async function AboutPage() {
-  const payload = await getPayload()
-
-  let settings: SiteSetting
+  // Empty defaults so a DB-unreachable build renders the shell instead of
+  // 404ing; runtime ISR + the T3 hooks repopulate once the DB is reachable.
+  let settings: SiteSetting = {} as SiteSetting
   let entries: CareerEntry[] = []
   let testimonialRows: Testimonial[] = []
 
   try {
+    const payload = await getPayload()
     const [settingsRes, careerRes, testimonialsRes] = await Promise.all([
       // depth 1 populates avatar + resume_pdf uploads.
       payload.findGlobal({ slug: "site-settings", depth: 1, ...PUBLIC_READ }),
@@ -72,7 +72,6 @@ export default async function AboutPage() {
     testimonialRows = testimonialsRes.docs
   } catch (error) {
     console.error("[AboutPage] payload fetch failed", error)
-    notFound()
   }
 
   const { html: bioHtml } = await renderMarkdown(settings.bio_markdown ?? "")

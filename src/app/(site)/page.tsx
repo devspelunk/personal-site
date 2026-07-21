@@ -36,8 +36,6 @@ function resolveTags(
 }
 
 export default async function HomePage() {
-  const payload = await getPayload()
-
   let fullName: string | null = null
   let tagline: string | null = null
   let role: string | null = null
@@ -68,6 +66,7 @@ export default async function HomePage() {
   let testimonials: Testimonial[] = []
 
   try {
+    const payload = await getPayload()
     const [
       siteSettings,
       projectsRes,

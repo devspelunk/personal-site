@@ -15,15 +15,11 @@ export const revalidate = 3600
 // constrains results to `_status: published` (drafts never leak).
 const PUBLIC_READ = { overrideAccess: false } as const
 
-export async function generateStaticParams() {
-  const payload = await getPayload()
-  const { docs } = await payload.find({
-    collection: "ttrpg-journals",
-    depth: 0,
-    limit: 0,
-    ...PUBLIC_READ,
-  })
-  return docs.map((r) => ({ slug: r.slug }))
+export function generateStaticParams(): { slug: string }[] {
+  // Defer slug generation to on-demand ISR so the production image build needs
+  // no live database. Default `dynamicParams` renders + caches each path on
+  // first request; `revalidate: 3600` keeps it fresh.
+  return []
 }
 
 export async function generateMetadata({

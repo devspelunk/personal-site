@@ -41,48 +41,9 @@ function campaignName(
 }
 
 export async function GET() {
-  const payload = await getPayload()
-
-  const [blogPosts, projects, journals, characters, lore, homebrew] =
-    await Promise.all([
-      payload.find({
-        collection: "blog-posts",
-        depth: 1,
-        limit: 0,
-        ...PUBLIC_READ,
-      }),
-      payload.find({
-        collection: "projects",
-        depth: 1,
-        limit: 0,
-        ...PUBLIC_READ,
-      }),
-      payload.find({
-        collection: "ttrpg-journals",
-        depth: 1,
-        limit: 0,
-        ...PUBLIC_READ,
-      }),
-      payload.find({
-        collection: "ttrpg-characters",
-        depth: 1,
-        limit: 0,
-        ...PUBLIC_READ,
-      }),
-      payload.find({
-        collection: "ttrpg-lore",
-        depth: 1,
-        limit: 0,
-        ...PUBLIC_READ,
-      }),
-      payload.find({
-        collection: "ttrpg-homebrew",
-        depth: 1,
-        limit: 0,
-        ...PUBLIC_READ,
-      }),
-    ])
-
+  // Static page entries never touch the DB, so they always render. The dynamic
+  // collection entries are wrapped in try/catch so a DB-unreachable build emits
+  // just the static set instead of hard-failing; runtime ISR fills in the rest.
   const entries: SearchEntry[] = [
     {
       id: "static-home",
@@ -132,80 +93,126 @@ export async function GET() {
     },
   ]
 
-  for (const post of blogPosts.docs) {
-    entries.push({
-      id: `blog-${post.id}`,
-      type: "blog",
-      title: post.title,
-      description: post.excerpt ?? null,
-      tags: tagNames(post.tags),
-      slug: post.slug,
-      url: `/blog/${post.slug}`,
-    })
-  }
+  try {
+    const payload = await getPayload()
 
-  for (const project of projects.docs) {
-    entries.push({
-      id: `project-${project.id}`,
-      type: "project",
-      title: project.title,
-      description: project.short_description ?? null,
-      tags: tagNames(project.tags),
-      slug: project.slug,
-      url: `/projects/${project.slug}`,
-    })
-  }
+    const [blogPosts, projects, journals, characters, lore, homebrew] =
+      await Promise.all([
+        payload.find({
+          collection: "blog-posts",
+          depth: 1,
+          limit: 0,
+          ...PUBLIC_READ,
+        }),
+        payload.find({
+          collection: "projects",
+          depth: 1,
+          limit: 0,
+          ...PUBLIC_READ,
+        }),
+        payload.find({
+          collection: "ttrpg-journals",
+          depth: 1,
+          limit: 0,
+          ...PUBLIC_READ,
+        }),
+        payload.find({
+          collection: "ttrpg-characters",
+          depth: 1,
+          limit: 0,
+          ...PUBLIC_READ,
+        }),
+        payload.find({
+          collection: "ttrpg-lore",
+          depth: 1,
+          limit: 0,
+          ...PUBLIC_READ,
+        }),
+        payload.find({
+          collection: "ttrpg-homebrew",
+          depth: 1,
+          limit: 0,
+          ...PUBLIC_READ,
+        }),
+      ])
 
-  for (const j of journals.docs) {
-    const campaign = campaignName(j.campaign)
-    entries.push({
-      id: `journal-${j.id}`,
-      type: "journal",
-      title: j.title,
-      description: null,
-      tags: campaign ? [campaign] : [],
-      slug: j.slug,
-      url: `/ttrpg/journals/${j.slug}`,
-    })
-  }
+    for (const post of blogPosts.docs) {
+      entries.push({
+        id: `blog-${post.id}`,
+        type: "blog",
+        title: post.title,
+        description: post.excerpt ?? null,
+        tags: tagNames(post.tags),
+        slug: post.slug,
+        url: `/blog/${post.slug}`,
+      })
+    }
 
-  for (const c of characters.docs) {
-    const campaign = campaignName(c.campaign)
-    entries.push({
-      id: `character-${c.id}`,
-      type: "character",
-      title: c.name,
-      description: null,
-      tags: campaign ? [campaign] : [],
-      slug: c.slug,
-      url: `/ttrpg/characters/${c.slug}`,
-    })
-  }
+    for (const project of projects.docs) {
+      entries.push({
+        id: `project-${project.id}`,
+        type: "project",
+        title: project.title,
+        description: project.short_description ?? null,
+        tags: tagNames(project.tags),
+        slug: project.slug,
+        url: `/projects/${project.slug}`,
+      })
+    }
 
-  for (const l of lore.docs) {
-    const campaign = campaignName(l.campaign)
-    entries.push({
-      id: `lore-${l.id}`,
-      type: "lore",
-      title: l.title,
-      description: null,
-      tags: [l.category, ...(campaign ? [campaign] : [])],
-      slug: l.slug,
-      url: `/ttrpg/lore/${l.slug}`,
-    })
-  }
+    for (const j of journals.docs) {
+      const campaign = campaignName(j.campaign)
+      entries.push({
+        id: `journal-${j.id}`,
+        type: "journal",
+        title: j.title,
+        description: null,
+        tags: campaign ? [campaign] : [],
+        slug: j.slug,
+        url: `/ttrpg/journals/${j.slug}`,
+      })
+    }
 
-  for (const h of homebrew.docs) {
-    const campaign = campaignName(h.campaign)
-    entries.push({
-      id: `homebrew-${h.id}`,
-      type: "homebrew",
-      title: h.title,
-      description: null,
-      tags: [h.type, ...(campaign ? [campaign] : [])],
-      slug: h.slug,
-      url: `/ttrpg/homebrew/${h.slug}`,
-    })
+    for (const c of characters.docs) {
+      const campaign = campaignName(c.campaign)
+      entries.push({
+        id: `character-${c.id}`,
+        type: "character",
+        title: c.name,
+        description: null,
+        tags: campaign ? [campaign] : [],
+        slug: c.slug,
+        url: `/ttrpg/characters/${c.slug}`,
+      })
+    }
+
+    for (const l of lore.docs) {
+      const campaign = campaignName(l.campaign)
+      entries.push({
+        id: `lore-${l.id}`,
+        type: "lore",
+        title: l.title,
+        description: null,
+        tags: [l.category, ...(campaign ? [campaign] : [])],
+        slug: l.slug,
+        url: `/ttrpg/lore/${l.slug}`,
+      })
+    }
+
+    for (const h of homebrew.docs) {
+      const campaign = campaignName(h.campaign)
+      entries.push({
+        id: `homebrew-${h.id}`,
+        type: "homebrew",
+        title: h.title,
+        description: null,
+        tags: [h.type, ...(campaign ? [campaign] : [])],
+        slug: h.slug,
+        url: `/ttrpg/homebrew/${h.slug}`,
+      })
+    }
+  } catch (error) {
+    console.error("[search-index] payload fetch failed", error)
   }
 
   return new Response(JSON.stringify(entries), {

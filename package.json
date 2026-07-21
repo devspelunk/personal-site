@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "next dev --turbopack",
-    "dev:services": "docker compose up -d postgres directus directus-bootstrap",
+    "dev:services": "docker compose up -d postgres",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

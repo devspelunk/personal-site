@@ -48,10 +48,10 @@ export default async function BlogPage({
 }) {
   const { tag: tagParam } = await searchParams
   const selectedTagSlugs = normalizeTagParam(tagParam)
-  const payload = await getPayload()
 
   let docs: BlogPost[] = []
   try {
+    const payload = await getPayload()
     // overrideAccess: false runs `authenticatedOrPublished`, which constrains
     // anonymous reads to published docs (Local API otherwise defaults to
     // overrideAccess: true and would leak drafts).

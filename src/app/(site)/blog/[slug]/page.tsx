@@ -21,15 +21,11 @@ function resolveTags(tags: BlogPost["tags"]): Tag[] {
   )
 }
 
-export async function generateStaticParams() {
-  const payload = await getPayload()
-  const result = await payload.find({
-    collection: "blog-posts",
-    depth: 0,
-    overrideAccess: false,
-    limit: 100,
-  })
-  return result.docs.map((p) => ({ slug: p.slug }))
+export function generateStaticParams(): { slug: string }[] {
+  // Defer slug generation to on-demand ISR so the production image build needs
+  // no live database. Default `dynamicParams` renders + caches each path on
+  // first request; `revalidate: 3600` keeps it fresh.
+  return []
 }
 
 export async function generateMetadata({
