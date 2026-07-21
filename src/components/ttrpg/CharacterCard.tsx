@@ -1,19 +1,17 @@
 import Image from "next/image"
 import Link from "next/link"
 
-import { getAssetUrl } from "@/lib/assets"
-
 export function CharacterCard({
   slug,
   name,
   class_role,
-  portrait,
+  portraitUrl,
   campaignName,
 }: {
   slug: string
   name: string
-  class_role: string | null
-  portrait: string | null
+  class_role?: string | null
+  portraitUrl?: string
   campaignName: string
 }) {
   return (
@@ -22,9 +20,9 @@ export function CharacterCard({
       className="flex flex-col items-center rounded-lg border border-border bg-card p-5 text-center transition-colors hover:border-primary"
     >
       <div className="mb-3 size-24 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
-        {portrait ? (
+        {portraitUrl ? (
           <Image
-            src={getAssetUrl(portrait)}
+            src={portraitUrl}
             alt={name}
             width={96}
             height={96}

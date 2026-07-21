@@ -1,6 +1,4 @@
-import { readItems } from "@directus/sdk"
-
-import { createDirectusServerClient } from "@/lib/directus"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 
 export const revalidate = 3600
@@ -22,19 +20,26 @@ type FeedPost = {
 }
 
 export async function GET(request: Request) {
-  const client = createDirectusServerClient()
-
   let posts: FeedPost[]
   try {
-    posts = (await client.request(
-      readItems("blog_posts", {
-        filter: { status: { _eq: "published" } },
-        sort: ["-date_published"],
-        fields: ["title", "slug", "excerpt", "date_published"],
-      })
-    )) as FeedPost[]
+    const payload = await getPayload()
+    // overrideAccess: false runs `authenticatedOrPublished`, constraining this
+    // anonymous read to published posts so drafts never appear in the feed.
+    const result = await payload.find({
+      collection: "blog-posts",
+      depth: 0,
+      overrideAccess: false,
+      sort: "-date_published",
+      limit: 0,
+    })
+    posts = result.docs.map((post) => ({
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt ?? null,
+      date_published: post.date_published ?? null,
+    }))
   } catch (error) {
-    console.error("[feed.xml] readItems blog_posts failed", error)
+    console.error("[feed.xml] payload.find blog-posts failed", error)
     const origin = new URL(request.url).origin
     const unavailable = "Feed temporarily unavailable"
     const errorXml = `<?xml version="1.0" encoding="UTF-8"?>

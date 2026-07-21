@@ -5,17 +5,17 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 
 import { staggerChildren, staggerItem } from "@/lib/animations"
-import { getAssetUrl } from "@/lib/assets"
 
 import { SectionHeading } from "./SectionHeading"
 
 interface ProjectPreview {
-  id: string
+  id: number
   slug: string
   title: string
   short_description: string | null
+  /** Same-origin media URL resolved via `getMediaUrl`, or null when absent. */
   thumbnail: string | null
-  projects_tags?: { tag_id: { id: string; name: string } }[]
+  tags: { id: number; name: string }[]
 }
 
 export const FeaturedProjects = ({
@@ -42,7 +42,7 @@ export const FeaturedProjects = ({
             {project.thumbnail && (
               <div className="relative mb-4 aspect-video overflow-hidden rounded-md">
                 <Image
-                  src={getAssetUrl(project.thumbnail)}
+                  src={project.thumbnail}
                   alt={project.title}
                   fill
                   className="object-cover"
@@ -61,12 +61,12 @@ export const FeaturedProjects = ({
             )}
 
             <div className="flex flex-wrap gap-2">
-              {project.projects_tags?.map((pt) => (
+              {project.tags.map((tag) => (
                 <span
-                  key={pt.tag_id.id}
+                  key={tag.id}
                   className="rounded-full bg-secondary px-2 py-0.5 text-xs text-primary"
                 >
-                  {pt.tag_id.name}
+                  {tag.name}
                 </span>
               ))}
             </div>

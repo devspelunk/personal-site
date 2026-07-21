@@ -1,26 +1,29 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { readItems } from "@directus/sdk"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
-import { createDirectusServerClient } from "@/lib/directus"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
 import { renderMarkdown } from "@/lib/markdown"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass, formatDate } from "@/lib/utils"
 
 export const revalidate = 3600
 
+// Read as an anonymous visitor so the `authenticatedOrPublished` access control
+// constrains results to `_status: published` (drafts never leak).
+const PUBLIC_READ = { overrideAccess: false } as const
+
 export async function generateStaticParams() {
-  const client = createDirectusServerClient()
-  const rows = await client.request(
-    readItems("ttrpg_journals", {
-      filter: { status: { _eq: "published" } },
-      fields: ["slug"],
-    })
-  )
-  return rows.map((r) => ({ slug: r.slug }))
+  const payload = await getPayload()
+  const { docs } = await payload.find({
+    collection: "ttrpg-journals",
+    depth: 0,
+    limit: 0,
+    ...PUBLIC_READ,
+  })
+  return docs.map((r) => ({ slug: r.slug }))
 }
 
 export async function generateMetadata({
@@ -29,15 +32,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const client = createDirectusServerClient()
-  const rows = await client.request(
-    readItems("ttrpg_journals", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: ["title", "excerpt", "slug"],
-      limit: 1,
-    })
-  )
-  const post = rows[0]
+  const payload = await getPayload()
+  const { docs } = await payload.find({
+    collection: "ttrpg-journals",
+    depth: 0,
+    where: { slug: { equals: slug } },
+    limit: 1,
+    ...PUBLIC_READ,
+  })
+  const post = docs[0]
   if (!post) {
     return { title: "Journal" }
   }
@@ -68,40 +71,22 @@ export default async function TtrpgJournalPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  const rows = await client.request(
-    readItems("ttrpg_journals", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: [
-        "id",
-        "title",
-        "slug",
-        "session_number",
-        "session_date",
-        "body_markdown",
-        "excerpt",
-        "campaign_id",
-      ],
-      limit: 1,
-    })
-  )
-  const post = rows[0]
+  const { docs } = await payload.find({
+    collection: "ttrpg-journals",
+    depth: 1,
+    where: { slug: { equals: slug } },
+    limit: 1,
+    ...PUBLIC_READ,
+  })
+  const post = docs[0]
   if (!post) {
     notFound()
   }
 
-  let campaign: { id: string; name: string } | null = null
-  if (post.campaign_id) {
-    const cRows = await client.request(
-      readItems("campaigns", {
-        filter: { id: { _eq: post.campaign_id } },
-        fields: ["id", "name"],
-        limit: 1,
-      })
-    )
-    campaign = cRows[0] ?? null
-  }
+  const campaign =
+    post.campaign && typeof post.campaign === "object" ? post.campaign : null
 
   const { html } = await renderMarkdown(post.body_markdown ?? "")
 

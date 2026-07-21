@@ -1,8 +1,11 @@
-import { readItems } from "@directus/sdk"
-
-import { createDirectusServerClient } from "@/lib/directus"
+import { getPayload } from "@/lib/payload"
+import type { Campaign, Tag } from "@/payload-types"
 
 export const revalidate = 3600
+
+// overrideAccess: false runs `authenticatedOrPublished`, so drafted collections
+// only surface published docs — drafts are never indexed for search.
+const PUBLIC_READ = { overrideAccess: false } as const
 
 type SearchEntryType =
   | "page"
@@ -23,67 +26,62 @@ type SearchEntry = {
   url: string
 }
 
+/** Names of the tag relations Payload populated at depth >= 1. */
+function tagNames(tags: (number | Tag)[] | null | undefined): string[] {
+  return (tags ?? [])
+    .filter((tag): tag is Tag => typeof tag === "object" && tag !== null)
+    .map((tag) => tag.name)
+}
+
+/** Name of the campaign relation populated at depth >= 1, or null. */
+function campaignName(
+  campaign: (number | null) | Campaign | undefined
+): string | null {
+  return campaign && typeof campaign === "object" ? campaign.name : null
+}
+
 export async function GET() {
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  const published = { status: { _eq: "published" as const } }
-
-  const [campaigns, blogPosts, projects, journals, characters, lore, homebrew] =
+  const [blogPosts, projects, journals, characters, lore, homebrew] =
     await Promise.all([
-      client.request(readItems("campaigns", { fields: ["id", "name"] })),
-      client.request(
-        readItems("blog_posts", {
-          filter: published,
-          fields: [
-            "id",
-            "title",
-            "excerpt",
-            "slug",
-            { blog_posts_tags: [{ tag_id: ["name"] }] },
-          ],
-        } as never)
-      ),
-      client.request(
-        readItems("projects", {
-          filter: published,
-          fields: [
-            "id",
-            "title",
-            "short_description",
-            "slug",
-            { projects_tags: [{ tag_id: ["name"] }] },
-          ],
-        } as never)
-      ),
-      client.request(
-        readItems("ttrpg_journals", {
-          filter: published,
-          fields: ["id", "title", "slug", "campaign_id"],
-        })
-      ),
-      client.request(
-        readItems("ttrpg_characters", {
-          filter: published,
-          fields: ["id", "name", "slug", "campaign_id"],
-        })
-      ),
-      client.request(
-        readItems("ttrpg_lore", {
-          filter: published,
-          fields: ["id", "title", "slug", "category", "campaign_id"],
-        })
-      ),
-      client.request(
-        readItems("ttrpg_homebrew", {
-          filter: published,
-          fields: ["id", "title", "slug", "type", "campaign_id"],
-        })
-      ),
+      payload.find({
+        collection: "blog-posts",
+        depth: 1,
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "projects",
+        depth: 1,
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "ttrpg-journals",
+        depth: 1,
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "ttrpg-characters",
+        depth: 1,
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "ttrpg-lore",
+        depth: 1,
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "ttrpg-homebrew",
+        depth: 1,
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
     ])
-
-  const campaignNames = new Map(
-    campaigns.map((c) => [c.id as string, c.name as string])
-  )
 
   const entries: SearchEntry[] = [
     {
@@ -134,133 +132,77 @@ export async function GET() {
     },
   ]
 
-  const blogRows = blogPosts as {
-    id: string
-    title: string
-    excerpt: string | null
-    slug: string
-    blog_posts_tags?: { tag_id: { name: string } | null }[]
-  }[]
-
-  for (const post of blogRows) {
-    const tags =
-      post.blog_posts_tags
-        ?.map((row) => row.tag_id?.name)
-        .filter((t): t is string => Boolean(t)) ?? []
+  for (const post of blogPosts.docs) {
     entries.push({
       id: `blog-${post.id}`,
       type: "blog",
       title: post.title,
-      description: post.excerpt,
-      tags,
+      description: post.excerpt ?? null,
+      tags: tagNames(post.tags),
       slug: post.slug,
       url: `/blog/${post.slug}`,
     })
   }
 
-  const projectRows = projects as {
-    id: string
-    title: string
-    short_description: string | null
-    slug: string
-    projects_tags?: { tag_id: { name: string } | null }[]
-  }[]
-
-  for (const project of projectRows) {
-    const tags =
-      project.projects_tags
-        ?.map((row) => row.tag_id?.name)
-        .filter((t): t is string => Boolean(t)) ?? []
+  for (const project of projects.docs) {
     entries.push({
       id: `project-${project.id}`,
       type: "project",
       title: project.title,
-      description: project.short_description,
-      tags,
+      description: project.short_description ?? null,
+      tags: tagNames(project.tags),
       slug: project.slug,
       url: `/projects/${project.slug}`,
     })
   }
 
-  for (const j of journals as {
-    id: string
-    title: string
-    slug: string
-    campaign_id: string | null
-  }[]) {
-    const campaignTag = j.campaign_id
-      ? (campaignNames.get(j.campaign_id) ?? null)
-      : null
+  for (const j of journals.docs) {
+    const campaign = campaignName(j.campaign)
     entries.push({
       id: `journal-${j.id}`,
       type: "journal",
       title: j.title,
       description: null,
-      tags: campaignTag ? [campaignTag] : [],
+      tags: campaign ? [campaign] : [],
       slug: j.slug,
       url: `/ttrpg/journals/${j.slug}`,
     })
   }
 
-  for (const c of characters as {
-    id: string
-    name: string
-    slug: string
-    campaign_id: string | null
-  }[]) {
-    const campaignTag = c.campaign_id
-      ? (campaignNames.get(c.campaign_id) ?? null)
-      : null
+  for (const c of characters.docs) {
+    const campaign = campaignName(c.campaign)
     entries.push({
       id: `character-${c.id}`,
       type: "character",
       title: c.name,
       description: null,
-      tags: campaignTag ? [campaignTag] : [],
+      tags: campaign ? [campaign] : [],
       slug: c.slug,
       url: `/ttrpg/characters/${c.slug}`,
     })
   }
 
-  for (const l of lore as {
-    id: string
-    title: string
-    slug: string
-    category: string
-    campaign_id: string | null
-  }[]) {
-    const campaignTag = l.campaign_id
-      ? (campaignNames.get(l.campaign_id) ?? null)
-      : null
-    const tags = [l.category, ...(campaignTag ? [campaignTag] : [])]
+  for (const l of lore.docs) {
+    const campaign = campaignName(l.campaign)
     entries.push({
       id: `lore-${l.id}`,
       type: "lore",
       title: l.title,
       description: null,
-      tags,
+      tags: [l.category, ...(campaign ? [campaign] : [])],
       slug: l.slug,
       url: `/ttrpg/lore/${l.slug}`,
     })
   }
 
-  for (const h of homebrew as {
-    id: string
-    title: string
-    slug: string
-    type: string
-    campaign_id: string | null
-  }[]) {
-    const campaignTag = h.campaign_id
-      ? (campaignNames.get(h.campaign_id) ?? null)
-      : null
-    const tags = [h.type, ...(campaignTag ? [campaignTag] : [])]
+  for (const h of homebrew.docs) {
+    const campaign = campaignName(h.campaign)
     entries.push({
       id: `homebrew-${h.id}`,
       type: "homebrew",
       title: h.title,
       description: null,
-      tags,
+      tags: [h.type, ...(campaign ? [campaign] : [])],
       slug: h.slug,
       url: `/ttrpg/homebrew/${h.slug}`,
     })

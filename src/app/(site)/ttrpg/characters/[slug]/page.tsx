@@ -2,27 +2,30 @@ import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { readItems } from "@directus/sdk"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
-import { getAssetUrl } from "@/lib/assets"
-import { createDirectusServerClient } from "@/lib/directus"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
 import { renderMarkdown } from "@/lib/markdown"
+import { getMediaUrl } from "@/lib/media"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass } from "@/lib/utils"
 
 export const revalidate = 3600
 
+// Read as an anonymous visitor so the `authenticatedOrPublished` access control
+// constrains results to `_status: published` (drafts never leak).
+const PUBLIC_READ = { overrideAccess: false } as const
+
 export async function generateStaticParams() {
-  const client = createDirectusServerClient()
-  const rows = await client.request(
-    readItems("ttrpg_characters", {
-      filter: { status: { _eq: "published" } },
-      fields: ["slug"],
-    })
-  )
-  return rows.map((r) => ({ slug: r.slug }))
+  const payload = await getPayload()
+  const { docs } = await payload.find({
+    collection: "ttrpg-characters",
+    depth: 0,
+    limit: 0,
+    ...PUBLIC_READ,
+  })
+  return docs.map((r) => ({ slug: r.slug }))
 }
 
 export async function generateMetadata({
@@ -31,15 +34,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const client = createDirectusServerClient()
-  const rows = await client.request(
-    readItems("ttrpg_characters", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: ["name", "slug", "class_role", "portrait"],
-      limit: 1,
-    })
-  )
-  const character = rows[0]
+  const payload = await getPayload()
+  const { docs } = await payload.find({
+    collection: "ttrpg-characters",
+    depth: 1,
+    where: { slug: { equals: slug } },
+    limit: 1,
+    ...PUBLIC_READ,
+  })
+  const character = docs[0]
   if (!character) {
     return { title: "Character" }
   }
@@ -47,9 +50,7 @@ export async function generateMetadata({
   const siteUrl = getServerSiteUrl()
   const url = `${siteUrl}/ttrpg/characters/${character.slug}`
   const description = character.class_role ?? undefined
-  const imageUrl = character.portrait
-    ? getAssetUrl(character.portrait)
-    : `${siteUrl}/og-default.png`
+  const imageUrl = getMediaUrl(character.portrait) ?? `${siteUrl}/og-default.png`
 
   return {
     title: character.name,
@@ -76,40 +77,25 @@ export default async function TtrpgCharacterPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  const rows = await client.request(
-    readItems("ttrpg_characters", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: [
-        "id",
-        "name",
-        "slug",
-        "class_role",
-        "portrait",
-        "stats_overview",
-        "backstory_markdown",
-        "campaign_id",
-      ],
-      limit: 1,
-    })
-  )
-  const character = rows[0]
+  const { docs } = await payload.find({
+    collection: "ttrpg-characters",
+    depth: 1,
+    where: { slug: { equals: slug } },
+    limit: 1,
+    ...PUBLIC_READ,
+  })
+  const character = docs[0]
   if (!character) {
     notFound()
   }
 
-  let campaign: { id: string; name: string } | null = null
-  if (character.campaign_id) {
-    const cRows = await client.request(
-      readItems("campaigns", {
-        filter: { id: { _eq: character.campaign_id } },
-        fields: ["id", "name"],
-        limit: 1,
-      })
-    )
-    campaign = cRows[0] ?? null
-  }
+  const campaign =
+    character.campaign && typeof character.campaign === "object"
+      ? character.campaign
+      : null
+  const portraitUrl = getMediaUrl(character.portrait)
 
   const { html } = await renderMarkdown(character.backstory_markdown ?? "")
 
@@ -141,9 +127,9 @@ export default async function TtrpgCharacterPage({
 
         <div className="mt-6 mb-8 flex flex-col items-start gap-6 sm:flex-row sm:items-start">
           <div className="size-40 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
-            {character.portrait ? (
+            {portraitUrl ? (
               <Image
-                src={getAssetUrl(character.portrait)}
+                src={portraitUrl}
                 alt={character.name}
                 width={160}
                 height={160}

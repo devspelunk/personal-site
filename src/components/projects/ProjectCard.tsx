@@ -5,15 +5,15 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 
 import { staggerChildren, staggerItem } from "@/lib/animations"
-import { getAssetUrl } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 
-export type ProjectCardTag = { id: string; name: string }
+export type ProjectCardTag = { id: number; name: string }
 
 export type ProjectCardData = {
   slug: string
   title: string
   short_description: string | null
+  /** Same-origin media URL resolved via `getMediaUrl`, or null when absent. */
   thumbnail: string | null
   tags: ProjectCardTag[]
 }
@@ -39,12 +39,7 @@ export function ProjectCard({
               featured ? "aspect-video" : "h-32"
             )}
           >
-            <Image
-              src={getAssetUrl(thumbnail)}
-              alt={title}
-              fill
-              className="object-cover"
-            />
+            <Image src={thumbnail} alt={title} fill className="object-cover" />
           </div>
         )}
 

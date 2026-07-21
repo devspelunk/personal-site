@@ -1,14 +1,15 @@
 import type { Metadata } from "next"
-import { readItems } from "@directus/sdk"
 
 import {
   ProjectCardsGrid,
   type ProjectCardData,
 } from "@/components/projects/ProjectCard"
 import { SectionHeading } from "@/components/homepage/SectionHeading"
-import { createDirectusServerClient } from "@/lib/directus"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
+import { getMediaUrl } from "@/lib/media"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
+import type { Project, Tag } from "@/payload-types"
 
 export const revalidate = 3600
 
@@ -31,64 +32,40 @@ export const metadata: Metadata = {
   },
 }
 
-type ProjectListRow = {
-  id: string
-  slug: string
-  title: string
-  short_description: string | null
-  is_featured: boolean
-  thumbnail: string | null
-  projects_tags?: { tag_id: { id: string; name: string } | null }[]
-}
-
-function toCardData(row: ProjectListRow): ProjectCardData {
-  const tags =
-    row.projects_tags
-      ?.map((r) => r.tag_id)
-      .filter((t): t is { id: string; name: string } => t != null) ?? []
+function toCardData(project: Project): ProjectCardData {
+  const tags = (project.tags ?? [])
+    .filter((tag): tag is Tag => typeof tag === "object" && tag !== null)
+    .map((tag) => ({ id: tag.id, name: tag.name }))
 
   return {
-    slug: row.slug,
-    title: row.title,
-    short_description: row.short_description,
-    thumbnail: row.thumbnail,
+    slug: project.slug,
+    title: project.title,
+    short_description: project.short_description ?? null,
+    thumbnail: getMediaUrl(project.thumbnail) ?? null,
     tags,
   }
 }
 
 export default async function ProjectsPage() {
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  let rawProjects: ProjectListRow[] = []
+  let docs: Project[] = []
   try {
-    rawProjects = (await client.request(
-      readItems("projects", {
-        filter: { status: { _eq: "published" } },
-        sort: ["sort_order"],
-        fields: [
-          "id",
-          "slug",
-          "title",
-          "short_description",
-          "is_featured",
-          "thumbnail",
-          { projects_tags: [{ tag_id: ["id", "name"] }] },
-        ],
-      } as never)
-    )) as ProjectListRow[]
+    // overrideAccess: false enforces published-only for anonymous reads.
+    const result = await payload.find({
+      collection: "projects",
+      depth: 1,
+      overrideAccess: false,
+      sort: "sort_order",
+      limit: 100,
+    })
+    docs = result.docs
   } catch (error) {
-    console.error(
-      "[ProjectsPage] readItems projects (published list) failed",
-      error
-    )
+    console.error("[ProjectsPage] payload.find projects (published list) failed", error)
   }
 
-  const featuredProjects = rawProjects
-    .filter((p) => p.is_featured)
-    .map(toCardData)
-  const smallerProjects = rawProjects
-    .filter((p) => !p.is_featured)
-    .map(toCardData)
+  const featuredProjects = docs.filter((p) => p.is_featured).map(toCardData)
+  const smallerProjects = docs.filter((p) => !p.is_featured).map(toCardData)
 
   const siteUrl = getServerSiteUrl()
   const breadcrumbLd = buildBreadcrumbJsonLd([

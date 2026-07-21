@@ -4,7 +4,7 @@ import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { staggerChildren, staggerItem } from "@/lib/animations"
-import type { TechStackItem } from "@/lib/types/directus"
+import type { TechStackItem } from "@/payload-types"
 
 import { SectionHeading } from "./SectionHeading"
 

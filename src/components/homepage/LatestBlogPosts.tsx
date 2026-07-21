@@ -9,13 +9,13 @@ import { formatDate } from "@/lib/utils"
 import { SectionHeading } from "./SectionHeading"
 
 interface BlogPostPreview {
-  id: string
+  id: number
   slug: string
   title: string
   excerpt: string | null
   date_published: string | null
   readTime: number | null
-  blog_posts_tags?: { tag_id: { id: string; name: string } }[]
+  tags: { id: number; name: string }[]
 }
 
 export const LatestBlogPosts = ({ posts }: { posts: BlogPostPreview[] }) => (
@@ -53,12 +53,12 @@ export const LatestBlogPosts = ({ posts }: { posts: BlogPostPreview[] }) => (
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {post.blog_posts_tags?.map((bt) => (
+              {post.tags.map((tag) => (
                 <span
-                  key={bt.tag_id.id}
+                  key={tag.id}
                   className="rounded-full bg-secondary px-2 py-0.5 text-xs text-primary"
                 >
-                  {bt.tag_id.name}
+                  {tag.name}
                 </span>
               ))}
             </div>

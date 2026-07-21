@@ -1,46 +1,35 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import { notFound } from "next/navigation"
-import { readItems } from "@directus/sdk"
 import { ExternalLink, Github } from "lucide-react"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
-import { createDirectusServerClient } from "@/lib/directus"
-import { getAssetUrl } from "@/lib/assets"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
 import { renderMarkdown } from "@/lib/markdown"
+import { getMediaUrl } from "@/lib/media"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass } from "@/lib/utils"
+import type { Project, Tag } from "@/payload-types"
 
 export const revalidate = 3600
 
-type ProjectTagRow = { id: string; name: string }
-
-type ProjectDetail = {
-  id: string
-  title: string
-  slug: string
-  description_markdown: string | null
-  short_description: string | null
-  is_featured: boolean
-  role: string | null
-  context_constraints: string | null
-  outcome_impact: string | null
-  thumbnail: string | null
-  demo_url: string | null
-  repo_url: string | null
-  projects_tags?: { tag_id: ProjectTagRow | null }[]
+/** Keep only the tag relations Payload populated at depth >= 1. */
+function resolveTags(tags: Project["tags"]): Tag[] {
+  return (tags ?? []).filter(
+    (tag): tag is Tag => typeof tag === "object" && tag !== null
+  )
 }
 
 export async function generateStaticParams() {
-  const client = createDirectusServerClient()
-  const projects = await client.request(
-    readItems("projects", {
-      filter: { status: { _eq: "published" } },
-      fields: ["slug"],
-    })
-  )
-  return projects.map((p) => ({ slug: p.slug }))
+  const payload = await getPayload()
+  const result = await payload.find({
+    collection: "projects",
+    depth: 0,
+    overrideAccess: false,
+    limit: 100,
+  })
+  return result.docs.map((p) => ({ slug: p.slug }))
 }
 
 export async function generateMetadata({
@@ -49,15 +38,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const client = createDirectusServerClient()
-  const projects = await client.request(
-    readItems("projects", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: ["title", "short_description", "slug"],
-      limit: 1,
-    })
-  )
-  const project = projects[0]
+  const payload = await getPayload()
+  const result = await payload.find({
+    collection: "projects",
+    depth: 0,
+    overrideAccess: false,
+    where: { slug: { equals: slug } },
+    limit: 1,
+  })
+  const project = result.docs[0]
   if (!project) {
     return { title: "Project" }
   }
@@ -89,41 +78,25 @@ export default async function ProjectDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  const projects = await client.request(
-    readItems("projects", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: [
-        "id",
-        "title",
-        "slug",
-        "description_markdown",
-        "short_description",
-        "is_featured",
-        "role",
-        "context_constraints",
-        "outcome_impact",
-        "thumbnail",
-        "demo_url",
-        "repo_url",
-        { projects_tags: [{ tag_id: ["id", "name"] }] },
-      ],
-      limit: 1,
-    } as never)
-  )
+  const result = await payload.find({
+    collection: "projects",
+    depth: 1,
+    overrideAccess: false,
+    where: { slug: { equals: slug } },
+    limit: 1,
+  })
 
-  const project = (projects as ProjectDetail[])[0]
+  const project = result.docs[0]
   if (!project) {
     notFound()
   }
 
   const { html } = await renderMarkdown(project.description_markdown ?? "")
 
-  const displayTags =
-    project.projects_tags?.filter(
-      (row): row is { tag_id: ProjectTagRow } => row.tag_id != null
-    ) ?? []
+  const displayTags = resolveTags(project.tags)
+  const thumbnailUrl = getMediaUrl(project.thumbnail)
 
   const siteUrl = getServerSiteUrl()
   const breadcrumbLd = buildBreadcrumbJsonLd([
@@ -162,12 +135,12 @@ export default async function ProjectDetailPage({
   const tagsSection =
     displayTags.length > 0 ? (
       <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-8">
-        {displayTags.map((row) => (
+        {displayTags.map((tag) => (
           <span
-            key={row.tag_id.id}
+            key={tag.id}
             className="rounded-full bg-secondary px-2 py-0.5 text-xs text-primary"
           >
-            {row.tag_id.name}
+            {tag.name}
           </span>
         ))}
       </div>
@@ -236,10 +209,10 @@ export default async function ProjectDetailPage({
               {tagsSection}
               {linksSection}
 
-              {project.thumbnail && (
+              {thumbnailUrl && (
                 <div className="relative mt-10 aspect-video w-full max-w-4xl overflow-hidden rounded-lg border border-border">
                   <Image
-                    src={getAssetUrl(project.thumbnail)}
+                    src={thumbnailUrl}
                     alt={project.title}
                     fill
                     className="object-cover"
@@ -250,10 +223,10 @@ export default async function ProjectDetailPage({
             </>
           ) : (
             <>
-              {project.thumbnail && (
+              {thumbnailUrl && (
                 <div className="relative mb-8 aspect-video w-full max-w-3xl overflow-hidden rounded-lg border border-border">
                   <Image
-                    src={getAssetUrl(project.thumbnail)}
+                    src={thumbnailUrl}
                     alt={project.title}
                     fill
                     className="object-cover"

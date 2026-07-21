@@ -1,4 +1,3 @@
-import { readItems, readSingleton } from "@directus/sdk"
 import readingTime from "reading-time"
 
 import { CareerHighlights } from "@/components/homepage/CareerHighlights"
@@ -8,120 +7,163 @@ import { HeroCodeAnimation } from "@/components/homepage/HeroCodeAnimation"
 import { InteractiveTechStack } from "@/components/homepage/InteractiveTechStack"
 import { LatestBlogPosts } from "@/components/homepage/LatestBlogPosts"
 import { Testimonials } from "@/components/homepage/Testimonials"
-import { createDirectusServerClient } from "@/lib/directus"
 import { fetchGitHubContributions } from "@/lib/github"
 import { jsonLdScriptHtml } from "@/lib/jsonld"
+import { getMediaUrl } from "@/lib/media"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
+import type {
+  CareerEntry,
+  Project,
+  TechStackItem,
+  Testimonial,
+  Tag,
+} from "@/payload-types"
 
 export const revalidate = 3600
 
-type FeaturedProjectRow = {
-  id: string
-  slug: string
-  title: string
-  short_description: string | null
-  thumbnail: string | null
-  projects_tags?: { tag_id: { id: string; name: string } }[]
-}
+// Anonymous reads: `overrideAccess: false` runs `authenticatedOrPublished`, so
+// drafted collections (projects, blog-posts) return only published docs.
+const PUBLIC_READ = { overrideAccess: false } as const
 
-type HomeBlogPostRow = {
-  id: string
-  slug: string
-  title: string
-  excerpt: string | null
-  date_published: string | null
-  body_markdown: string | null
-  blog_posts_tags?: { tag_id: { id: string; name: string } }[]
+/** Keep only the tag relations Payload populated at depth >= 1. */
+function resolveTags(
+  tags: (number | Tag)[] | null | undefined
+): { id: number; name: string }[] {
+  return (tags ?? [])
+    .filter((tag): tag is Tag => typeof tag === "object" && tag !== null)
+    .map((tag) => ({ id: tag.id, name: tag.name }))
 }
 
 export default async function HomePage() {
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  const [
-    siteSettings,
-    projects,
-    careerEntries,
-    blogPosts,
-    techStackItems,
-    testimonials,
-  ] = await Promise.all([
-    client.request(readSingleton("site_settings")),
-    client.request(
-      readItems("projects", {
-        filter: { is_featured: { _eq: true }, status: { _eq: "published" } },
-        fields: [
-          "id",
-          "slug",
-          "title",
-          "short_description",
-          "thumbnail",
-          { projects_tags: [{ tag_id: ["id", "name"] }] },
-        ],
+  let fullName: string | null = null
+  let tagline: string | null = null
+  let role: string | null = null
+  let githubUsername: string | null = null
+  let linkedinUrl: string | null = null
+  let twitterUrl: string | null = null
+  let blueskyHandle: string | null = null
+
+  let featuredProjects: {
+    id: number
+    slug: string
+    title: string
+    short_description: string | null
+    thumbnail: string | null
+    tags: { id: number; name: string }[]
+  }[] = []
+  let careerEntries: CareerEntry[] = []
+  let latestBlogPosts: {
+    id: number
+    slug: string
+    title: string
+    excerpt: string | null
+    date_published: string | null
+    readTime: number | null
+    tags: { id: number; name: string }[]
+  }[] = []
+  let techStackItems: TechStackItem[] = []
+  let testimonials: Testimonial[] = []
+
+  try {
+    const [
+      siteSettings,
+      projectsRes,
+      careerRes,
+      blogRes,
+      techRes,
+      testimonialsRes,
+    ] = await Promise.all([
+      payload.findGlobal({ slug: "site-settings", depth: 0, ...PUBLIC_READ }),
+      payload.find({
+        collection: "projects",
+        depth: 1,
+        where: { is_featured: { equals: true } },
+        sort: "sort_order",
         limit: 3,
-      } as never)
-    ),
-    client.request(
-      readItems("career_entries", {
-        filter: { is_homepage_highlight: { _eq: true } },
-        sort: ["sort_order"],
-      })
-    ),
-    client.request(
-      readItems("blog_posts", {
-        filter: { status: { _eq: "published" } },
-        sort: ["-date_published"],
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "career-entries",
+        depth: 0,
+        where: { is_homepage_highlight: { equals: true } },
+        sort: "sort_order",
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "blog-posts",
+        depth: 1,
+        sort: "-date_published",
         limit: 3,
-        fields: [
-          "id",
-          "slug",
-          "title",
-          "excerpt",
-          "date_published",
-          "body_markdown",
-          { blog_posts_tags: [{ tag_id: ["id", "name"] }] },
-        ],
-      } as never)
-    ),
-    client.request(
-      readItems("tech_stack_items", {
-        sort: ["sort_order"],
-      })
-    ),
-    client.request(
-      readItems("testimonials", {
-        filter: { is_homepage_featured: { _eq: true } },
-        sort: ["sort_order"],
-      })
-    ),
-  ])
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "tech-stack-items",
+        depth: 0,
+        sort: "sort_order",
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "testimonials",
+        depth: 1,
+        where: { is_homepage_featured: { equals: true } },
+        sort: "sort_order",
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+    ])
 
-  const featuredProjects = projects as FeaturedProjectRow[]
-  const latestBlogRows = blogPosts as HomeBlogPostRow[]
+    fullName = siteSettings.full_name ?? null
+    tagline = siteSettings.tagline ?? null
+    role = siteSettings.role ?? null
+    githubUsername = siteSettings.github_username ?? null
+    linkedinUrl = siteSettings.linkedin_url ?? null
+    twitterUrl = siteSettings.twitter_url ?? null
+    blueskyHandle = siteSettings.bluesky_handle ?? null
 
-  const blogPostsWithReadTime = latestBlogRows.map(
-    ({ body_markdown, ...post }) => ({
-      ...post,
-      readTime: body_markdown
-        ? Math.ceil(readingTime(body_markdown).minutes)
+    featuredProjects = projectsRes.docs.map((project: Project) => ({
+      id: project.id,
+      slug: project.slug,
+      title: project.title,
+      short_description: project.short_description ?? null,
+      thumbnail: getMediaUrl(project.thumbnail) ?? null,
+      tags: resolveTags(project.tags),
+    }))
+
+    careerEntries = careerRes.docs
+    techStackItems = techRes.docs
+    testimonials = testimonialsRes.docs
+
+    latestBlogPosts = blogRes.docs.map((post) => ({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt ?? null,
+      date_published: post.date_published ?? null,
+      readTime: post.body_markdown
+        ? Math.ceil(readingTime(post.body_markdown).minutes)
         : null,
-    })
-  )
+      tags: resolveTags(post.tags),
+    }))
+  } catch (error) {
+    console.error("[HomePage] payload fetch failed", error)
+  }
 
-  const contributions = siteSettings.github_username
-    ? await fetchGitHubContributions(siteSettings.github_username)
+  const contributions = githubUsername
+    ? await fetchGitHubContributions(githubUsername)
     : []
 
   const siteUrl = getServerSiteUrl()
-  const displayName = siteSettings.full_name ?? "Michael Lemus"
+  const displayName = fullName ?? "Michael Lemus"
   const sameAs = [
-    siteSettings.linkedin_url,
-    siteSettings.github_username
-      ? `https://github.com/${siteSettings.github_username}`
-      : null,
-    siteSettings.twitter_url,
-    siteSettings.bluesky_handle
-      ? `https://bsky.app/profile/${siteSettings.bluesky_handle}`
-      : null,
+    linkedinUrl,
+    githubUsername ? `https://github.com/${githubUsername}` : null,
+    twitterUrl,
+    blueskyHandle ? `https://bsky.app/profile/${blueskyHandle}` : null,
   ].filter((url): url is string => Boolean(url))
 
   const personJsonLd = {
@@ -140,13 +182,9 @@ export default async function HomePage() {
       />
       <section className="py-12">
         <HeroCodeAnimation
-          fullName={siteSettings.full_name ?? "Engineer"}
-          tagline={siteSettings.tagline ?? "Building things that matter."}
-          role={
-            siteSettings.role?.trim()
-              ? siteSettings.role.trim()
-              : "Full-Stack Engineer"
-          }
+          fullName={fullName ?? "Engineer"}
+          tagline={tagline ?? "Building things that matter."}
+          role={role?.trim() ? role.trim() : "Full-Stack Engineer"}
         />
       </section>
 
@@ -168,9 +206,9 @@ export default async function HomePage() {
         </section>
       )}
 
-      {blogPostsWithReadTime.length > 0 && (
+      {latestBlogPosts.length > 0 && (
         <section className="border-t border-border py-12">
-          <LatestBlogPosts posts={blogPostsWithReadTime} />
+          <LatestBlogPosts posts={latestBlogPosts} />
         </section>
       )}
 

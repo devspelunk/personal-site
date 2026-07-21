@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import Script from "next/script"
-import { readItems, readSingleton } from "@directus/sdk"
 
 import "./globals.css"
 
@@ -10,11 +9,17 @@ import { CommandPalette } from "@/components/CommandPalette"
 import { CommandPaletteProvider } from "@/components/CommandPaletteContext"
 import { Terminal } from "@/components/Terminal"
 import { TerminalProvider } from "@/components/TerminalContext"
-import { createDirectusServerClient, getAssetUrl } from "@/lib/directus"
-import type { SiteSettings } from "@/lib/types/directus"
+import { getMediaUrl } from "@/lib/media"
+import { getPayload } from "@/lib/payload"
+import type { SiteSetting } from "@/payload-types"
 
-const FALLBACK_SITE_SETTINGS: SiteSettings = {
-  id: "",
+// Anonymous reads: `overrideAccess: false` runs each collection's
+// `authenticatedOrPublished` access, constraining drafted collections
+// (projects, blog-posts) to published docs.
+const PUBLIC_READ = { overrideAccess: false } as const
+
+const FALLBACK_SITE_SETTINGS: SiteSetting = {
+  id: 0,
   full_name: null,
   role: null,
   tagline: null,
@@ -61,43 +66,58 @@ type TerminalCareerEntry = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  let siteSettings: SiteSettings
+  let siteSettings: SiteSetting
   let projects: TerminalProject[] = []
   let blogPosts: TerminalBlogPost[] = []
   let careerEntries: TerminalCareerEntry[] = []
 
   try {
-    const client = createDirectusServerClient()
-    ;[siteSettings, projects, blogPosts, careerEntries] = (await Promise.all([
-      client.request(readSingleton("site_settings")),
-      client.request(
-        readItems("projects", {
-          filter: { status: { _eq: "published" } },
-          sort: ["sort_order"],
-          fields: ["title", "slug"],
-        } as never)
-      ),
-      client.request(
-        readItems("blog_posts", {
-          filter: { status: { _eq: "published" } },
-          sort: ["-date_published"],
-          fields: ["title", "slug"],
-        } as never)
-      ),
-      client.request(
-        readItems("career_entries", {
-          sort: ["sort_order"],
-          fields: ["role", "company", "date_start", "date_end"],
-        } as never)
-      ),
-    ])) as [
-      SiteSettings,
-      TerminalProject[],
-      TerminalBlogPost[],
-      TerminalCareerEntry[],
-    ]
+    const payload = await getPayload()
+    const [settingsRes, projectsRes, blogPostsRes, careerRes] =
+      await Promise.all([
+        // depth 1 populates the resume_pdf upload so the footer link resolves.
+        payload.findGlobal({
+          slug: "site-settings",
+          depth: 1,
+          ...PUBLIC_READ,
+        }),
+        payload.find({
+          collection: "projects",
+          depth: 0,
+          limit: 0,
+          sort: "sort_order",
+          ...PUBLIC_READ,
+        }),
+        payload.find({
+          collection: "blog-posts",
+          depth: 0,
+          limit: 0,
+          sort: "-date_published",
+          ...PUBLIC_READ,
+        }),
+        payload.find({
+          collection: "career-entries",
+          depth: 0,
+          limit: 0,
+          sort: "sort_order",
+          ...PUBLIC_READ,
+        }),
+      ])
+
+    siteSettings = settingsRes
+    projects = projectsRes.docs.map((p) => ({ title: p.title, slug: p.slug }))
+    blogPosts = blogPostsRes.docs.map((b) => ({
+      title: b.title,
+      slug: b.slug,
+    }))
+    careerEntries = careerRes.docs.map((c) => ({
+      role: c.role,
+      company: c.company,
+      date_start: c.date_start,
+      date_end: c.date_end ?? null,
+    }))
   } catch (error) {
-    console.error("[RootLayout] Directus fetch failed:", error)
+    console.error("[RootLayout] Payload fetch failed:", error)
     siteSettings = FALLBACK_SITE_SETTINGS
   }
 
@@ -113,9 +133,7 @@ export default async function RootLayout({
     email: siteSettings.email ?? undefined,
   }
 
-  const resumePdfUrl = siteSettings.resume_pdf
-    ? getAssetUrl(siteSettings.resume_pdf)
-    : undefined
+  const resumePdfUrl = getMediaUrl(siteSettings.resume_pdf)
 
   const umamiId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
   const umamiSrc = process.env.NEXT_PUBLIC_UMAMI_URL
@@ -139,8 +157,8 @@ export default async function RootLayout({
               <Footer social={social} resumePdfUrl={resumePdfUrl} />
               <CommandPalette />
               <Terminal
-                fullName={siteSettings.full_name}
-                tagline={siteSettings.tagline}
+                fullName={siteSettings.full_name ?? null}
+                tagline={siteSettings.tagline ?? null}
                 projects={projects}
                 blogPosts={blogPosts}
                 careerEntries={careerEntries}

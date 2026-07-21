@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next"
-import { readItems } from "@directus/sdk"
 
-import { createDirectusServerClient } from "@/lib/directus"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 
 export const revalidate = 3600
+
+// overrideAccess: false runs `authenticatedOrPublished` so only published docs
+// (never drafts) are enumerated in the sitemap.
+const PUBLIC_READ = { overrideAccess: false } as const
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getServerSiteUrl()
@@ -21,74 +24,71 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let dynamicEntries: MetadataRoute.Sitemap = []
 
   try {
-    const client = createDirectusServerClient()
-    const published = { status: { _eq: "published" as const } }
+    const payload = await getPayload()
+
+    const slugs = async (
+      collection:
+        | "blog-posts"
+        | "projects"
+        | "ttrpg-journals"
+        | "ttrpg-characters"
+        | "ttrpg-lore"
+        | "ttrpg-homebrew"
+    ): Promise<string[]> => {
+      const result = await payload.find({
+        collection,
+        depth: 0,
+        limit: 0,
+        select: { slug: true },
+        ...PUBLIC_READ,
+      })
+      return result.docs.map((doc) => doc.slug)
+    }
 
     const [posts, projects, journals, characters, lore, homebrew] =
       await Promise.all([
-        client.request(
-          readItems("blog_posts", { filter: published, fields: ["slug"] })
-        ),
-        client.request(
-          readItems("projects", { filter: published, fields: ["slug"] })
-        ),
-        client.request(
-          readItems("ttrpg_journals", {
-            filter: published,
-            fields: ["slug"],
-          })
-        ),
-        client.request(
-          readItems("ttrpg_characters", {
-            filter: published,
-            fields: ["slug"],
-          })
-        ),
-        client.request(
-          readItems("ttrpg_lore", { filter: published, fields: ["slug"] })
-        ),
-        client.request(
-          readItems("ttrpg_homebrew", {
-            filter: published,
-            fields: ["slug"],
-          })
-        ),
+        slugs("blog-posts"),
+        slugs("projects"),
+        slugs("ttrpg-journals"),
+        slugs("ttrpg-characters"),
+        slugs("ttrpg-lore"),
+        slugs("ttrpg-homebrew"),
       ])
 
     dynamicEntries = [
-      ...posts.map((row: { slug: string }) => ({
-        url: base(`/blog/${row.slug}`),
+      ...posts.map((slug) => ({
+        url: base(`/blog/${slug}`),
         changeFrequency: "weekly" as const,
         priority: 0.75,
       })),
-      ...projects.map((row: { slug: string }) => ({
-        url: base(`/projects/${row.slug}`),
+      ...projects.map((slug) => ({
+        url: base(`/projects/${slug}`),
         changeFrequency: "weekly" as const,
         priority: 0.75,
       })),
-      ...journals.map((row: { slug: string }) => ({
-        url: base(`/ttrpg/journals/${row.slug}`),
+      ...journals.map((slug) => ({
+        url: base(`/ttrpg/journals/${slug}`),
         changeFrequency: "weekly" as const,
         priority: 0.65,
       })),
-      ...characters.map((row: { slug: string }) => ({
-        url: base(`/ttrpg/characters/${row.slug}`),
+      ...characters.map((slug) => ({
+        url: base(`/ttrpg/characters/${slug}`),
         changeFrequency: "weekly" as const,
         priority: 0.65,
       })),
-      ...lore.map((row: { slug: string }) => ({
-        url: base(`/ttrpg/lore/${row.slug}`),
+      ...lore.map((slug) => ({
+        url: base(`/ttrpg/lore/${slug}`),
         changeFrequency: "weekly" as const,
         priority: 0.65,
       })),
-      ...homebrew.map((row: { slug: string }) => ({
-        url: base(`/ttrpg/homebrew/${row.slug}`),
+      ...homebrew.map((slug) => ({
+        url: base(`/ttrpg/homebrew/${slug}`),
         changeFrequency: "weekly" as const,
         priority: 0.65,
       })),
     ]
   } catch (err) {
-    console.error("[sitemap] Directus slug fetch failed:", err)
+    console.error("[sitemap] Payload slug fetch failed:", err)
   }
 
   return [...staticEntries, ...dynamicEntries]

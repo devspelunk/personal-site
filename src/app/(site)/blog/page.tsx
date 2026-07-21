@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
-import { readItems } from "@directus/sdk"
 import readingTime from "reading-time"
 
 import { BlogList, type BlogListPost } from "@/components/blog/BlogList"
 import { SectionHeading } from "@/components/homepage/SectionHeading"
-import { createDirectusServerClient } from "@/lib/directus"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
+import type { BlogPost, Tag } from "@/payload-types"
 
 export const revalidate = 3600
 
@@ -29,13 +29,16 @@ export const metadata: Metadata = {
   },
 }
 
-type BlogPostRow = Omit<BlogListPost, "readTime"> & {
-  body_markdown: string | null
-}
-
 function normalizeTagParam(tag: string | string[] | undefined) {
   if (tag == null) return []
   return Array.isArray(tag) ? tag : [tag]
+}
+
+/** Keep only the tag relations Payload populated at depth >= 1. */
+function resolveTags(tags: BlogPost["tags"]): BlogListPost["tags"] {
+  return (tags ?? [])
+    .filter((tag): tag is Tag => typeof tag === "object" && tag !== null)
+    .map((tag) => ({ id: tag.id, name: tag.name, slug: tag.slug }))
 }
 
 export default async function BlogPage({
@@ -45,39 +48,36 @@ export default async function BlogPage({
 }) {
   const { tag: tagParam } = await searchParams
   const selectedTagSlugs = normalizeTagParam(tagParam)
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  let rawPosts: BlogPostRow[]
+  let docs: BlogPost[] = []
   try {
-    rawPosts = (await client.request(
-      readItems("blog_posts", {
-        filter: { status: { _eq: "published" } },
-        sort: ["-date_published"],
-        fields: [
-          "id",
-          "slug",
-          "title",
-          "excerpt",
-          "date_published",
-          "body_markdown",
-          { blog_posts_tags: [{ tag_id: ["id", "name", "slug"] }] },
-        ],
-      } as never)
-    )) as BlogPostRow[]
+    // overrideAccess: false runs `authenticatedOrPublished`, which constrains
+    // anonymous reads to published docs (Local API otherwise defaults to
+    // overrideAccess: true and would leak drafts).
+    const result = await payload.find({
+      collection: "blog-posts",
+      depth: 1,
+      overrideAccess: false,
+      sort: "-date_published",
+      limit: 100,
+    })
+    docs = result.docs
   } catch (error) {
-    console.error(
-      "[BlogPage] readItems blog_posts (published list) failed",
-      error
-    )
-    rawPosts = []
+    console.error("[BlogPage] payload.find blog-posts (published list) failed", error)
   }
 
-  const posts = rawPosts.map(({ body_markdown, ...post }) => ({
-    ...post,
-    readTime: body_markdown
-      ? Math.ceil(readingTime(body_markdown).minutes)
+  const posts: BlogListPost[] = docs.map((doc) => ({
+    id: doc.id,
+    slug: doc.slug,
+    title: doc.title,
+    excerpt: doc.excerpt ?? null,
+    date_published: doc.date_published ?? null,
+    readTime: doc.body_markdown
+      ? Math.ceil(readingTime(doc.body_markdown).minutes)
       : null,
-  })) satisfies BlogListPost[]
+    tags: resolveTags(doc.tags),
+  }))
 
   const siteUrl = getServerSiteUrl()
   const breadcrumbLd = buildBreadcrumbJsonLd([

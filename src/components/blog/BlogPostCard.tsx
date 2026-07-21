@@ -3,7 +3,7 @@ import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 
 export interface BlogPostCardTag {
-  id: string
+  id: number
   name: string
   slug: string
 }

@@ -1,62 +1,26 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import { notFound } from "next/navigation"
-import { readItems, readSingleton } from "@directus/sdk"
 import { Circle, Github, Linkedin, Mail, X } from "lucide-react"
 
 import { CareerHighlights } from "@/components/homepage/CareerHighlights"
 import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { Testimonials } from "@/components/homepage/Testimonials"
 import { Button } from "@/components/ui/button"
-import { createDirectusServerClient } from "@/lib/directus"
-import { getAssetUrl } from "@/lib/assets"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
 import { renderMarkdown } from "@/lib/markdown"
+import { getMediaUrl } from "@/lib/media"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
-import type {
-  CareerEntry,
-  SiteSettings,
-  Testimonial,
-} from "@/lib/types/directus"
+import type { CareerEntry, SiteSetting, Testimonial } from "@/payload-types"
 import { articleBodyClass } from "@/lib/utils"
 
 export const revalidate = 3600
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value != null
-
-const isSiteSettings = (value: unknown): value is SiteSettings => {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  return (
-    typeof value.bio_markdown === "string" ||
-    value.bio_markdown === null ||
-    value.bio_markdown === undefined
-  )
-}
-
-const isCareerEntry = (value: unknown): value is CareerEntry => {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  return (
-    typeof value.id === "string" &&
-    typeof value.role === "string" &&
-    typeof value.company === "string" &&
-    typeof value.date_start === "string"
-  )
-}
-
-const isTestimonial = (value: unknown): value is Testimonial => {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  return typeof value.id === "string" && typeof value.quote === "string"
-}
+// Anonymous reads: `overrideAccess: false` keeps public reads consistent with
+// the drafted collections elsewhere (career/testimonials/site-settings are not
+// drafted, so this is a harmless no-op for them).
+const PUBLIC_READ = { overrideAccess: false } as const
 
 const aboutDescription =
   "Background, experience, testimonials, and how to get in touch."
@@ -78,52 +42,37 @@ export const metadata: Metadata = {
 }
 
 export default async function AboutPage() {
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  let rawSiteSettings: unknown
-  let rawCareerEntries: unknown
-  let rawTestimonials: unknown
+  let settings: SiteSetting
+  let entries: CareerEntry[] = []
+  let testimonialRows: Testimonial[] = []
 
   try {
-    ;[rawSiteSettings, rawCareerEntries, rawTestimonials] = await Promise.all([
-      client.request(readSingleton("site_settings")),
-      client.request(
-        readItems("career_entries", {
-          sort: ["sort_order"],
-        })
-      ),
-      client.request(
-        readItems("testimonials", {
-          sort: ["sort_order"],
-        })
-      ),
+    const [settingsRes, careerRes, testimonialsRes] = await Promise.all([
+      // depth 1 populates avatar + resume_pdf uploads.
+      payload.findGlobal({ slug: "site-settings", depth: 1, ...PUBLIC_READ }),
+      payload.find({
+        collection: "career-entries",
+        depth: 0,
+        sort: "sort_order",
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
+      payload.find({
+        collection: "testimonials",
+        depth: 1,
+        sort: "sort_order",
+        limit: 0,
+        ...PUBLIC_READ,
+      }),
     ])
+    settings = settingsRes
+    entries = careerRes.docs
+    testimonialRows = testimonialsRes.docs
   } catch (error) {
-    console.error("[AboutPage] Directus fetch failed", error)
+    console.error("[AboutPage] payload fetch failed", error)
     notFound()
-  }
-
-  if (!isSiteSettings(rawSiteSettings)) {
-    console.error("[AboutPage] Invalid site_settings response shape")
-    notFound()
-  }
-
-  const settings = rawSiteSettings
-
-  const entries = Array.isArray(rawCareerEntries)
-    ? rawCareerEntries.filter(isCareerEntry)
-    : []
-
-  if (!Array.isArray(rawCareerEntries)) {
-    console.error("[AboutPage] Invalid career_entries response shape")
-  }
-
-  const testimonialRows = Array.isArray(rawTestimonials)
-    ? rawTestimonials.filter(isTestimonial)
-    : []
-
-  if (!Array.isArray(rawTestimonials)) {
-    console.error("[AboutPage] Invalid testimonials response shape")
   }
 
   const { html: bioHtml } = await renderMarkdown(settings.bio_markdown ?? "")
@@ -138,6 +87,9 @@ export default async function AboutPage() {
       return { ...entry, descriptionHtml: html }
     })
   )
+
+  const avatarUrl = getMediaUrl(settings.avatar)
+  const resumeUrl = getMediaUrl(settings.resume_pdf)
 
   const siteUrl = getServerSiteUrl()
   const displayName = settings.full_name ?? "Michael Lemus"
@@ -180,10 +132,10 @@ export default async function AboutPage() {
 
       <section className="mt-8 border-b border-border pb-12">
         <div className="flex flex-col gap-8 md:flex-row md:items-start">
-          {settings.avatar && (
+          {avatarUrl && (
             <div className="relative mx-auto h-40 w-40 shrink-0 overflow-hidden rounded-full border border-border md:mx-0">
               <Image
-                src={getAssetUrl(settings.avatar)}
+                src={avatarUrl}
                 alt={displayName}
                 fill
                 className="object-cover"
@@ -220,16 +172,11 @@ export default async function AboutPage() {
         </section>
       )}
 
-      {settings.resume_pdf && (
+      {resumeUrl && (
         <section className="border-b border-border py-12">
           <h2 className="mb-4 font-mono text-lg text-primary">Resume</h2>
           <Button variant="outline" asChild>
-            <a
-              href={getAssetUrl(settings.resume_pdf)}
-              download
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href={resumeUrl} download target="_blank" rel="noreferrer">
               Download resume
             </a>
           </Button>

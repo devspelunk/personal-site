@@ -12,9 +12,9 @@ export function JournalCard({
 }: {
   slug: string
   title: string
-  session_number: number | null
-  session_date: string | null
-  excerpt: string | null
+  session_number?: number | null
+  session_date?: string | null
+  excerpt?: string | null
   campaignName: string
 }) {
   const heading =

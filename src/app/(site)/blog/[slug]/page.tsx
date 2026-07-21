@@ -1,41 +1,35 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { readItems, readSingleton } from "@directus/sdk"
 import readingTime from "reading-time"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { RelatedPosts } from "@/components/blog/RelatedPosts"
 import { TableOfContents } from "@/components/blog/TableOfContents"
-import { createDirectusServerClient } from "@/lib/directus"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
 import { renderMarkdown } from "@/lib/markdown"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass, formatDate } from "@/lib/utils"
+import type { BlogPost, Tag } from "@/payload-types"
 
 export const revalidate = 3600
 
-type BlogPostTag = { id: string; name: string; slug: string }
-
-type BlogPostDetail = {
-  id: string
-  title: string
-  slug: string
-  body_markdown: string | null
-  excerpt: string | null
-  status: string | null
-  date_published: string | null
-  blog_posts_tags?: { tag_id: BlogPostTag | null }[]
+/** Keep only the tag relations Payload populated at depth >= 1. */
+function resolveTags(tags: BlogPost["tags"]): Tag[] {
+  return (tags ?? []).filter(
+    (tag): tag is Tag => typeof tag === "object" && tag !== null
+  )
 }
 
 export async function generateStaticParams() {
-  const client = createDirectusServerClient()
-  const posts = await client.request(
-    readItems("blog_posts", {
-      filter: { status: { _eq: "published" } },
-      fields: ["slug"],
-    })
-  )
-  return posts.map((p) => ({ slug: p.slug }))
+  const payload = await getPayload()
+  const result = await payload.find({
+    collection: "blog-posts",
+    depth: 0,
+    overrideAccess: false,
+    limit: 100,
+  })
+  return result.docs.map((p) => ({ slug: p.slug }))
 }
 
 export async function generateMetadata({
@@ -44,15 +38,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const client = createDirectusServerClient()
-  const posts = await client.request(
-    readItems("blog_posts", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: ["title", "excerpt", "slug", "date_published"],
-      limit: 1,
-    })
-  )
-  const post = posts[0]
+  const payload = await getPayload()
+  const result = await payload.find({
+    collection: "blog-posts",
+    depth: 0,
+    overrideAccess: false,
+    where: { slug: { equals: slug } },
+    limit: 1,
+  })
+  const post = result.docs[0]
   if (!post) {
     return { title: "Post" }
   }
@@ -84,34 +78,20 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  const [posts, siteSettings] = await Promise.all([
-    client.request(
-      readItems("blog_posts", {
-        filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-        fields: [
-          "id",
-          "title",
-          "slug",
-          "body_markdown",
-          "excerpt",
-          "status",
-          "date_published",
-          "is_featured",
-          "featured_image",
-          "content_hash",
-          "date_created",
-          "date_updated",
-          { blog_posts_tags: [{ tag_id: ["id", "name", "slug"] }] },
-        ],
-        limit: 1,
-      } as never)
-    ),
-    client.request(readSingleton("site_settings")),
+  const [postsResult, siteSettings] = await Promise.all([
+    payload.find({
+      collection: "blog-posts",
+      depth: 1,
+      overrideAccess: false,
+      where: { slug: { equals: slug } },
+      limit: 1,
+    }),
+    payload.findGlobal({ slug: "site-settings", depth: 0 }),
   ])
 
-  const post = (posts as BlogPostDetail[])[0]
+  const post = postsResult.docs[0]
   if (!post) {
     notFound()
   }
@@ -119,42 +99,29 @@ export default async function BlogPostPage({
   const body = post.body_markdown ?? ""
   const { html, headings, readTime } = await renderMarkdown(body)
 
-  const tagIds =
-    post.blog_posts_tags
-      ?.map((row) => row.tag_id?.id)
-      .filter((id): id is string => Boolean(id)) ?? []
+  const displayTags = resolveTags(post.tags)
+  const tagIds = displayTags.map((tag) => tag.id)
 
-  const displayTags =
-    post.blog_posts_tags?.filter(
-      (row): row is { tag_id: BlogPostTag } => row.tag_id != null
-    ) ?? []
-
-  let relatedRaw: {
-    id: string
-    slug: string
-    title: string
-    date_published: string | null
-    body_markdown: string | null
-  }[] = []
-
+  let relatedDocs: BlogPost[] = []
   if (tagIds.length > 0) {
-    relatedRaw = (await client.request(
-      readItems("blog_posts", {
-        filter: {
-          status: { _eq: "published" },
-          id: { _neq: post.id },
-          blog_posts_tags: { tag_id: { _in: tagIds } },
-        },
-        fields: ["id", "slug", "title", "date_published", "body_markdown"],
-        limit: 3,
-      } as never)
-    )) as typeof relatedRaw
+    const relatedResult = await payload.find({
+      collection: "blog-posts",
+      depth: 0,
+      overrideAccess: false,
+      where: {
+        and: [{ id: { not_equals: post.id } }, { tags: { in: tagIds } }],
+      },
+      limit: 3,
+    })
+    relatedDocs = relatedResult.docs
   }
 
-  const relatedPosts = relatedRaw.map(({ body_markdown, ...p }) => ({
-    ...p,
-    readTime: body_markdown
-      ? Math.ceil(readingTime(body_markdown).minutes)
+  const relatedPosts = relatedDocs.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    date_published: p.date_published ?? null,
+    readTime: p.body_markdown
+      ? Math.ceil(readingTime(p.body_markdown).minutes)
       : null,
   }))
 
@@ -224,12 +191,12 @@ export default async function BlogPostPage({
 
             {displayTags.length > 0 && (
               <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-8">
-                {displayTags.map((row) => (
+                {displayTags.map((tag) => (
                   <span
-                    key={row.tag_id.id}
+                    key={tag.id}
                     className="rounded-full bg-secondary px-2 py-0.5 text-xs text-primary"
                   >
-                    {row.tag_id.name}
+                    {tag.name}
                   </span>
                 ))}
               </div>

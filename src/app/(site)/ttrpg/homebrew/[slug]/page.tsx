@@ -1,28 +1,31 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { readItems } from "@directus/sdk"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
-import { Badge } from "@/components/ui/badge"
 import { formatHomebrewTypeLabel } from "@/components/ttrpg/ttrpg-labels"
-import { createDirectusServerClient } from "@/lib/directus"
+import { Badge } from "@/components/ui/badge"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
 import { renderMarkdown } from "@/lib/markdown"
+import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass } from "@/lib/utils"
 
 export const revalidate = 3600
 
+// Read as an anonymous visitor so the `authenticatedOrPublished` access control
+// constrains results to `_status: published` (drafts never leak).
+const PUBLIC_READ = { overrideAccess: false } as const
+
 export async function generateStaticParams() {
-  const client = createDirectusServerClient()
-  const rows = await client.request(
-    readItems("ttrpg_homebrew", {
-      filter: { status: { _eq: "published" } },
-      fields: ["slug"],
-    })
-  )
-  return rows.map((r) => ({ slug: r.slug }))
+  const payload = await getPayload()
+  const { docs } = await payload.find({
+    collection: "ttrpg-homebrew",
+    depth: 0,
+    limit: 0,
+    ...PUBLIC_READ,
+  })
+  return docs.map((r) => ({ slug: r.slug }))
 }
 
 export async function generateMetadata({
@@ -31,15 +34,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const client = createDirectusServerClient()
-  const rows = await client.request(
-    readItems("ttrpg_homebrew", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: ["title", "slug", "body_markdown", "type"],
-      limit: 1,
-    })
-  )
-  const entry = rows[0]
+  const payload = await getPayload()
+  const { docs } = await payload.find({
+    collection: "ttrpg-homebrew",
+    depth: 0,
+    where: { slug: { equals: slug } },
+    limit: 1,
+    ...PUBLIC_READ,
+  })
+  const entry = docs[0]
   if (!entry) {
     return { title: "Homebrew" }
   }
@@ -75,31 +78,22 @@ export default async function TtrpgHomebrewPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const client = createDirectusServerClient()
+  const payload = await getPayload()
 
-  const rows = await client.request(
-    readItems("ttrpg_homebrew", {
-      filter: { slug: { _eq: slug }, status: { _eq: "published" } },
-      fields: ["id", "title", "slug", "type", "body_markdown", "campaign_id"],
-      limit: 1,
-    })
-  )
-  const entry = rows[0]
+  const { docs } = await payload.find({
+    collection: "ttrpg-homebrew",
+    depth: 1,
+    where: { slug: { equals: slug } },
+    limit: 1,
+    ...PUBLIC_READ,
+  })
+  const entry = docs[0]
   if (!entry) {
     notFound()
   }
 
-  let campaign: { id: string; name: string } | null = null
-  if (entry.campaign_id) {
-    const cRows = await client.request(
-      readItems("campaigns", {
-        filter: { id: { _eq: entry.campaign_id } },
-        fields: ["id", "name"],
-        limit: 1,
-      })
-    )
-    campaign = cRows[0] ?? null
-  }
+  const campaign =
+    entry.campaign && typeof entry.campaign === "object" ? entry.campaign : null
 
   const { html } = await renderMarkdown(entry.body_markdown ?? "")
 
