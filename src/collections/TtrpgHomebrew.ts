@@ -60,8 +60,8 @@ export const TtrpgHomebrew: CollectionConfig = {
       ],
     },
     {
-      name: "body_markdown",
-      type: "textarea",
+      name: "body",
+      type: "richText",
     },
   ],
 }

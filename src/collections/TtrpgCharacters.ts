@@ -51,8 +51,8 @@ export const TtrpgCharacters: CollectionConfig = {
       type: "text",
     },
     {
-      name: "backstory_markdown",
-      type: "textarea",
+      name: "backstory",
+      type: "richText",
     },
     {
       name: "stats_overview",

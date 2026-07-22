@@ -20,6 +20,32 @@ export type RevalidateArgs = {
   previousSlug?: string
 }
 
+/**
+ * Pure map from a Payload collection slug + document slug to its rendered detail
+ * route, or `null` for collections that own no slug-keyed detail route (and for
+ * unknown slugs). This is the canonical slug→path mapping; it is shared with the
+ * Lexical renderer's `internalDocToHref` so internal links resolve to the same
+ * routes revalidation targets (blog → `/blog/x`, TTRPG → `/ttrpg/<kind>/x`, …).
+ */
+export function detailPathFor(collection: string, slug: string): string | null {
+  switch (collection) {
+    case "blog-posts":
+      return `/blog/${slug}`
+    case "projects":
+      return `/projects/${slug}`
+    case "ttrpg-journals":
+      return `/ttrpg/journals/${slug}`
+    case "ttrpg-characters":
+      return `/ttrpg/characters/${slug}`
+    case "ttrpg-lore":
+      return `/ttrpg/lore/${slug}`
+    case "ttrpg-homebrew":
+      return `/ttrpg/homebrew/${slug}`
+    default:
+      return null
+  }
+}
+
 /** Collection slugs that own a detail route keyed by slug. */
 function addDetailPath(
   paths: Set<string>,
@@ -28,28 +54,8 @@ function addDetailPath(
 ): void {
   if (!slug) return
 
-  switch (collection) {
-    case "blog-posts":
-      paths.add(`/blog/${slug}`)
-      break
-    case "projects":
-      paths.add(`/projects/${slug}`)
-      break
-    case "ttrpg-journals":
-      paths.add(`/ttrpg/journals/${slug}`)
-      break
-    case "ttrpg-characters":
-      paths.add(`/ttrpg/characters/${slug}`)
-      break
-    case "ttrpg-lore":
-      paths.add(`/ttrpg/lore/${slug}`)
-      break
-    case "ttrpg-homebrew":
-      paths.add(`/ttrpg/homebrew/${slug}`)
-      break
-    default:
-      break
-  }
+  const path = detailPathFor(collection, slug)
+  if (path) paths.add(path)
 }
 
 /**

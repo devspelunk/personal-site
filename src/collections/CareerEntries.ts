@@ -50,8 +50,8 @@ export const CareerEntries: CollectionConfig = {
       type: "text",
     },
     {
-      name: "description_markdown",
-      type: "textarea",
+      name: "description",
+      type: "richText",
     },
     {
       name: "is_homepage_highlight",

@@ -4,6 +4,7 @@ import readingTime from "reading-time"
 import { BlogList, type BlogListPost } from "@/components/blog/BlogList"
 import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
+import { lexicalToPlainText } from "@/lib/markdown"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import type { BlogPost, Tag } from "@/payload-types"
@@ -73,8 +74,8 @@ export default async function BlogPage({
     title: doc.title,
     excerpt: doc.excerpt ?? null,
     date_published: doc.date_published ?? null,
-    readTime: doc.body_markdown
-      ? Math.ceil(readingTime(doc.body_markdown).minutes)
+    readTime: doc.body
+      ? Math.ceil(readingTime(lexicalToPlainText(doc.body)).minutes)
       : null,
     tags: resolveTags(doc.tags),
   }))

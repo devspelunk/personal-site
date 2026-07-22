@@ -5,7 +5,7 @@ import { notFound } from "next/navigation"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderMarkdown } from "@/lib/markdown"
+import { EMPTY_LEXICAL, renderLexical } from "@/lib/markdown"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
@@ -93,7 +93,7 @@ export default async function TtrpgCharacterPage({
       : null
   const portraitUrl = getMediaUrl(character.portrait)
 
-  const { html } = await renderMarkdown(character.backstory_markdown ?? "")
+  const { html } = await renderLexical(character.backstory ?? EMPTY_LEXICAL)
 
   const siteUrl = getServerSiteUrl()
   const breadcrumbLd = buildBreadcrumbJsonLd([

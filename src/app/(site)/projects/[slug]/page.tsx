@@ -5,7 +5,7 @@ import { ExternalLink, Github } from "lucide-react"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderMarkdown } from "@/lib/markdown"
+import { EMPTY_LEXICAL, renderLexical } from "@/lib/markdown"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
@@ -91,7 +91,7 @@ export default async function ProjectDetailPage({
     notFound()
   }
 
-  const { html } = await renderMarkdown(project.description_markdown ?? "")
+  const { html } = await renderLexical(project.description ?? EMPTY_LEXICAL)
 
   const displayTags = resolveTags(project.tags)
   const thumbnailUrl = getMediaUrl(project.thumbnail)

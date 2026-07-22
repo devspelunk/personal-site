@@ -6,7 +6,7 @@ import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { RelatedPosts } from "@/components/blog/RelatedPosts"
 import { TableOfContents } from "@/components/blog/TableOfContents"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderMarkdown } from "@/lib/markdown"
+import { EMPTY_LEXICAL, lexicalToPlainText, renderLexical } from "@/lib/markdown"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass, formatDate } from "@/lib/utils"
@@ -94,8 +94,9 @@ export default async function BlogPostPage({
     notFound()
   }
 
-  const body = post.body_markdown ?? ""
-  const { html, headings, readTime } = await renderMarkdown(body)
+  const { html, headings, readTime } = await renderLexical(
+    post.body ?? EMPTY_LEXICAL,
+  )
 
   const displayTags = resolveTags(post.tags)
   const tagIds = displayTags.map((tag) => tag.id)
@@ -118,8 +119,8 @@ export default async function BlogPostPage({
     slug: p.slug,
     title: p.title,
     date_published: p.date_published ?? null,
-    readTime: p.body_markdown
-      ? Math.ceil(readingTime(p.body_markdown).minutes)
+    readTime: p.body
+      ? Math.ceil(readingTime(lexicalToPlainText(p.body)).minutes)
       : null,
   }))
 

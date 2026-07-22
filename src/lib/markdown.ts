@@ -1,96 +1,50 @@
 import readingTime from "reading-time"
-import rehypePrettyCode from "rehype-pretty-code"
 import rehypeStringify from "rehype-stringify"
 import remarkParse from "remark-parse"
 import remarkRehype from "remark-rehype"
 import { remark } from "remark"
-import { visit } from "unist-util-visit"
 
-interface Heading {
-  id: string
-  text: string
-  level: number
+import type { SerializedEditorState } from "@payloadcms/richtext-lexical/lexical"
+
+import type { Heading } from "@/lib/lexical/rehype"
+import {
+  createHeadingIdsPlugin,
+  rehypePrettyCodeOptions,
+} from "@/lib/lexical/rehype"
+import rehypePrettyCode from "rehype-pretty-code"
+
+/**
+ * Empty Lexical document. Render fallback for a null/absent richText field so a
+ * page with no body content renders an empty article instead of throwing on
+ * `data.root` — the frontend equivalent of the old `renderMarkdown(x ?? "")`.
+ */
+export const EMPTY_LEXICAL: SerializedEditorState = {
+  root: {
+    type: "root",
+    children: [],
+    direction: null,
+    format: "",
+    indent: 0,
+    version: 1,
+  },
 }
 
-interface HtmlElementNode {
-  type: string
-  tagName?: string
-  properties?: Record<string, unknown>
-  children?: HtmlElementNode[]
-  value?: string
-}
-
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-
-const getHtmlNodeText = (node: HtmlElementNode): string => {
-  if (node.type === "text" && typeof node.value === "string") {
-    return node.value
-  }
-
-  if (Array.isArray(node.children)) {
-    return node.children.map(getHtmlNodeText).join("")
-  }
-
-  return ""
-}
-
-const createUniqueSlug = (text: string, slugCounts: Map<string, number>) => {
-  const baseSlug = slugify(text) || "section"
-  const nextCount = (slugCounts.get(baseSlug) ?? 0) + 1
-  slugCounts.set(baseSlug, nextCount)
-
-  return nextCount === 1 ? baseSlug : `${baseSlug}-${nextCount}`
-}
-
+/**
+ * Markdown → HTML renderer. **Retained only as the parity oracle** for
+ * `src/lib/lexical/render.test.ts`, which proves `renderLexical` emits
+ * byte-identical markup (heading ids, highlighted code) to this pipeline. It has
+ * **no production callers** — every `(site)` page renders Lexical via
+ * `renderLexical` after the T4 cutover. Do not reintroduce page imports.
+ */
 export const renderMarkdown = async (source: string) => {
   const headings: Heading[] = []
   const slugCounts = new Map<string, number>()
 
-  const addHeadingIds = () => {
-    return (tree: HtmlElementNode) => {
-      visit(tree, "element", (node) => {
-        const headingNode = node as HtmlElementNode
-        const tagName = headingNode.tagName ?? ""
-
-        if (!/^h[1-6]$/.test(tagName)) {
-          return
-        }
-
-        const text = getHtmlNodeText(headingNode).trim()
-
-        if (!text) {
-          return
-        }
-
-        const id = createUniqueSlug(text, slugCounts)
-        const level = Number(tagName.slice(1))
-        headingNode.properties = { ...(headingNode.properties ?? {}), id }
-
-        headings.push({
-          id,
-          text,
-          level,
-        })
-      })
-    }
-  }
-
   const result = await remark()
     .use(remarkParse)
     .use(remarkRehype)
-    .use(addHeadingIds)
-    .use(rehypePrettyCode, {
-      // Cohesive low-chroma dark theme (warm greys + amber) that sits with the
-      // acid-on-dark palette; the code-block surface is themed via globals.css.
-      theme: "vesper",
-      keepBackground: false,
-    })
+    .use(createHeadingIdsPlugin(headings, slugCounts))
+    .use(rehypePrettyCode, rehypePrettyCodeOptions)
     .use(rehypeStringify)
     .process(source)
 
@@ -101,4 +55,5 @@ export const renderMarkdown = async (source: string) => {
   }
 }
 
+export { renderLexical, lexicalToPlainText } from "@/lib/lexical/render"
 export type { Heading }

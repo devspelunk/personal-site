@@ -41,8 +41,8 @@ export const Projects: CollectionConfig = {
       index: true,
     },
     {
-      name: "description_markdown",
-      type: "textarea",
+      name: "description",
+      type: "richText",
     },
     {
       name: "short_description",

@@ -42,9 +42,8 @@ export const BlogPosts: CollectionConfig = {
       index: true,
     },
     {
-      // Markdown source stored as plain text (NOT richText).
-      name: "body_markdown",
-      type: "textarea",
+      name: "body",
+      type: "richText",
     },
     {
       name: "excerpt",
