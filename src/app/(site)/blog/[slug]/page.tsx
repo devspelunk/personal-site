@@ -6,7 +6,12 @@ import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { RelatedPosts } from "@/components/blog/RelatedPosts"
 import { TableOfContents } from "@/components/blog/TableOfContents"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { EMPTY_LEXICAL, lexicalToPlainText, renderLexical } from "@/lib/markdown"
+import {
+  EMPTY_LEXICAL,
+  isLexicalEmpty,
+  lexicalToPlainText,
+  renderLexical,
+} from "@/lib/markdown"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass, formatDate } from "@/lib/utils"
@@ -119,9 +124,9 @@ export default async function BlogPostPage({
     slug: p.slug,
     title: p.title,
     date_published: p.date_published ?? null,
-    readTime: p.body
-      ? Math.ceil(readingTime(lexicalToPlainText(p.body)).minutes)
-      : null,
+    readTime: isLexicalEmpty(p.body)
+      ? null
+      : Math.ceil(readingTime(lexicalToPlainText(p.body)).minutes),
   }))
 
   const siteUrl = getServerSiteUrl()

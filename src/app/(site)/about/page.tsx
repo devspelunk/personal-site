@@ -7,7 +7,7 @@ import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { Testimonials } from "@/components/homepage/Testimonials"
 import { Button } from "@/components/ui/button"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { EMPTY_LEXICAL, renderLexical } from "@/lib/markdown"
+import { EMPTY_LEXICAL, isLexicalEmpty, renderLexical } from "@/lib/markdown"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
@@ -80,7 +80,7 @@ export default async function AboutPage() {
 
   const careerEntriesForAbout = await Promise.all(
     entries.map(async (entry) => {
-      if (!entry.description) {
+      if (!entry.description || isLexicalEmpty(entry.description)) {
         return { ...entry }
       }
       const { html } = await renderLexical(entry.description)

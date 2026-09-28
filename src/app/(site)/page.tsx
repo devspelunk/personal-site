@@ -10,7 +10,7 @@ import { Testimonials } from "@/components/homepage/Testimonials"
 import { VectorAccent } from "@/components/ornament/VectorAccent"
 import { fetchGitHubContributions } from "@/lib/github"
 import { jsonLdScriptHtml } from "@/lib/jsonld"
-import { lexicalToPlainText } from "@/lib/markdown"
+import { isLexicalEmpty, lexicalToPlainText } from "@/lib/markdown"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
@@ -145,9 +145,9 @@ export default async function HomePage() {
       title: post.title,
       excerpt: post.excerpt ?? null,
       date_published: post.date_published ?? null,
-      readTime: post.body
-        ? Math.ceil(readingTime(lexicalToPlainText(post.body)).minutes)
-        : null,
+      readTime: isLexicalEmpty(post.body)
+        ? null
+        : Math.ceil(readingTime(lexicalToPlainText(post.body)).minutes),
       tags: resolveTags(post.tags),
     }))
   } catch (error) {

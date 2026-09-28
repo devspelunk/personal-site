@@ -55,5 +55,5 @@ export const renderMarkdown = async (source: string) => {
   }
 }
 
-export { renderLexical, lexicalToPlainText } from "@/lib/lexical/render"
+export { renderLexical, lexicalToPlainText, isLexicalEmpty } from "@/lib/lexical/render"
 export type { Heading }

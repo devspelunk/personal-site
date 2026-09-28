@@ -1,13 +1,17 @@
 import { postgresAdapter } from "@payloadcms/db-postgres"
-import type { SanitizedServerEditorConfig } from "@payloadcms/richtext-lexical"
+import {
+  convertMarkdownToLexical,
+  type SanitizedServerEditorConfig,
+} from "@payloadcms/richtext-lexical"
 import { buildConfig } from "payload"
+import readingTime from "reading-time"
 import sharp from "sharp"
 import { beforeAll, describe, expect, it } from "vitest"
 
 import { Media } from "@/collections/Media"
 import { assertConverterCoverage, buildEditorConfig, getEnabledNodeTypes } from "@/lib/lexical"
 import { LEXICAL_CONVERTER_MAP } from "@/lib/lexical/render"
-import { renderLexical, lexicalToPlainText } from "@/lib/lexical/render"
+import { isLexicalEmpty, renderLexical, lexicalToPlainText } from "@/lib/lexical/render"
 import { renderMarkdown } from "@/lib/markdown"
 
 import {
@@ -208,5 +212,109 @@ describe("lexicalToPlainText", () => {
       root: { type: "root", children: [{ type: "paragraph", children: [text("hi")] }] },
     } as never
     expect(lexicalToPlainText(doc)).toBe("hi")
+  })
+})
+
+describe("lexicalToPlainText whitespace", () => {
+  const fromMarkdown = (markdown: string) =>
+    lexicalToPlainText(convertMarkdownToLexical({ editorConfig, markdown }))
+
+  it("separates list items instead of running them together", () => {
+    const plain = fromMarkdown("- Fire\n- Ice\n- Lightning")
+    expect(plain).toBe("Fire\nIce\nLightning")
+  })
+
+  it("separates nested list items", () => {
+    const plain = fromMarkdown("- Elements\n  - Fire\n  - Ice")
+    expect(plain.split(/\s+/)).toEqual(["Elements", "Fire", "Ice"])
+  })
+
+  it("keeps linebreak and tab nodes as whitespace", () => {
+    const doc = {
+      root: {
+        type: "root",
+        children: [
+          {
+            type: "paragraph",
+            children: [text("Roses"), { type: "linebreak" }, text("Violets"), { type: "tab" }, text("Blue")],
+          },
+        ],
+      },
+    } as never
+    expect(lexicalToPlainText(doc)).toBe("Roses\nViolets\tBlue")
+  })
+
+  it("keeps words inside links joined to their sentence", () => {
+    const doc = {
+      root: {
+        type: "root",
+        children: [
+          {
+            type: "paragraph",
+            children: [text("see "), { type: "link", children: [text("the docs")] }, text(" here")],
+          },
+        ],
+      },
+    } as never
+    expect(lexicalToPlainText(doc)).toBe("see the docs here")
+  })
+
+  // Compared against the prose word count, not `readingTime(markdown)`, which
+  // also counts Markdown syntax tokens (`#`, `-`, `>`, `1.`) as words.
+  it("counts every prose word across lists, quotes, and paragraphs", () => {
+    const markdown = [
+      "# Spells",
+      "",
+      "Casters pick from these schools:",
+      "",
+      "- Evocation deals damage",
+      "- Abjuration protects allies",
+      "  - Wards and shields",
+      "",
+      "> The wise mage prepares twice.",
+      "",
+      "1. First step",
+      "2. Second step",
+    ].join("\n")
+
+    const prose =
+      "Spells Casters pick from these schools: Evocation deals damage Abjuration " +
+      "protects allies Wards and shields The wise mage prepares twice. First step Second step"
+
+    expect(fromMarkdown(markdown).split(/\s+/)).toEqual(prose.split(" "))
+    expect(readingTime(fromMarkdown(markdown)).words).toBe(readingTime(prose).words)
+  })
+})
+
+describe("isLexicalEmpty", () => {
+  const paragraph = (...children: unknown[]) => ({ type: "paragraph", children })
+  const doc = (...children: unknown[]) => ({ root: { type: "root", children } }) as never
+
+  it("treats null, undefined, and an empty root as empty", () => {
+    expect(isLexicalEmpty(null)).toBe(true)
+    expect(isLexicalEmpty(undefined)).toBe(true)
+    expect(isLexicalEmpty(doc())).toBe(true)
+  })
+
+  it("treats a cleared editor (empty or whitespace paragraphs) as empty", () => {
+    expect(isLexicalEmpty(doc(paragraph()))).toBe(true)
+    expect(isLexicalEmpty(doc(paragraph(text("   ")), paragraph({ type: "linebreak" })))).toBe(true)
+  })
+
+  it("treats text as content", () => {
+    expect(isLexicalEmpty(doc(paragraph(text("hi"))))).toBe(false)
+  })
+
+  it("treats image-only and code-only bodies as content", () => {
+    expect(isLexicalEmpty(doc({ type: "upload", value: { id: 1 } }))).toBe(false)
+    expect(isLexicalEmpty(doc(paragraph({ type: "inlineImage", src: "/a.png", alt: "" })))).toBe(false)
+    expect(isLexicalEmpty(codeFixture())).toBe(false)
+  })
+
+  it("agrees with the old Markdown trim check on converted content", () => {
+    for (const markdown of ["", "   \n\n  ", "Hello", "- item"]) {
+      const lexical = convertMarkdownToLexical({ editorConfig, markdown })
+      expect(isLexicalEmpty(lexical)).toBe(!markdown.trim())
+    }
   })
 })

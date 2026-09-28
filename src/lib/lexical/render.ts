@@ -44,8 +44,15 @@ type LexicalNodeLike = {
   children?: LexicalNodeLike[]
 }
 
+// Inline element nodes whose text flows into the surrounding sentence. Any
+// other element (list, listitem, quote, table cell, …) is block-level, so its
+// text is fenced with newlines — otherwise adjacent items run together
+// ("Fire" + "Ice" → "FireIce") and skew word counts, slugs, and excerpts.
+const INLINE_ELEMENT_TYPES = new Set(["link", "autolink"])
+
 // Concatenates the readable text of a Lexical subtree: text nodes, inline-image
-// alt text, and stored code. Feeds both heading slugs and reading-time.
+// alt text, and stored code, with line breaks/tabs and block boundaries kept as
+// whitespace. Feeds heading slugs, reading-time, and plain-text excerpts.
 const collectText = (node: LexicalNodeLike | undefined, out: string[]): void => {
   if (!node) return
 
@@ -53,37 +60,73 @@ const collectText = (node: LexicalNodeLike | undefined, out: string[]): void => 
     out.push(node.text)
     return
   }
+  if (node.type === "linebreak") {
+    out.push("\n")
+    return
+  }
+  if (node.type === "tab") {
+    out.push("\t")
+    return
+  }
   if (node.type === "inlineImage" && node.alt) {
     out.push(node.alt)
     return
   }
   if (node.type === "block" && node.fields?.blockType === "Code" && node.fields.code) {
-    out.push(node.fields.code)
+    out.push("\n", node.fields.code, "\n")
     return
   }
   if (Array.isArray(node.children)) {
+    const isBlock = !INLINE_ELEMENT_TYPES.has(node.type ?? "")
+    if (isBlock) out.push("\n")
     for (const child of node.children) collectText(child, out)
+    if (isBlock) out.push("\n")
   }
 }
+
+// Joins collected segments, collapsing the newline fences block boundaries add
+// so each boundary reads as a single line break.
+const joinText = (out: string[]): string =>
+  out.join("").replace(/[ \t]*\n\s*/g, "\n").trim()
 
 const nodesToPlainText = (nodes: LexicalNodeLike[] | undefined): string => {
   const out: string[] = []
   for (const node of nodes ?? []) collectText(node, out)
-  return out.join("")
+  return joinText(out)
 }
 
 /**
  * AST → plain text walker feeding `reading-time`. Reused by the reading-time
  * sites (via `renderLexical`'s `readTime`) so word counts stay consistent.
+ * Top-level blocks are separated by a blank line, nested blocks (list items,
+ * quote lines) and line breaks by a single newline.
  */
 export function lexicalToPlainText(data: SerializedEditorState | null | undefined): string {
   const blocks: string[] = []
   for (const node of data?.root?.children ?? []) {
-    const out: string[] = []
-    collectText(node as LexicalNodeLike, out)
-    if (out.length) blocks.push(out.join(""))
+    const block = nodesToPlainText([node as LexicalNodeLike])
+    if (block) blocks.push(block)
   }
-  return blocks.join("\n\n").trim()
+  return blocks.join("\n\n")
+}
+
+// Node types that carry content even without any text (an image-only or
+// divider-only body is still a body, as it was in Markdown).
+const NON_TEXT_CONTENT_TYPES = new Set(["upload", "inlineImage", "block", "horizontalrule"])
+
+const hasNonTextContent = (node: LexicalNodeLike | undefined): boolean =>
+  !!node &&
+  (NON_TEXT_CONTENT_TYPES.has(node.type ?? "") ||
+    (node.children ?? []).some(hasNonTextContent))
+
+/**
+ * True when a richText value has no content: null/absent, or the editor was
+ * cleared (Lexical stores an empty paragraph rather than null). The Lexical
+ * equivalent of the old `!markdown?.trim()` checks.
+ */
+export function isLexicalEmpty(data: SerializedEditorState | null | undefined): boolean {
+  const children = (data?.root?.children ?? []) as LexicalNodeLike[]
+  return !children.some(hasNonTextContent) && lexicalToPlainText(data) === ""
 }
 
 // Internal links resolve to the doc's canonical detail route via the shared
