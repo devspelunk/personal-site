@@ -27,16 +27,45 @@ export function getEnabledNodeTypes(editorConfig: SanitizedServerEditorConfig): 
   return [...types]
 }
 
+type BlocksFeatureProps = {
+  blocks?: { slug: string }[]
+  inlineBlocks?: { slug: string }[]
+}
+
+/**
+ * Reads the block slugs registered through `BlocksFeature` on the sanitized
+ * editor config, split by where they render (`block` vs `inlineBlock` nodes).
+ */
+export function getEnabledBlockSlugs(editorConfig: SanitizedServerEditorConfig): {
+  blocks: string[]
+  inlineBlocks: string[]
+} {
+  const feature = editorConfig.resolvedFeatureMap.get("blocks") as
+    | { sanitizedServerFeatureProps?: BlocksFeatureProps }
+    | undefined
+  const props = feature?.sanitizedServerFeatureProps ?? {}
+
+  return {
+    blocks: (props.blocks ?? []).map((block) => block.slug),
+    inlineBlocks: (props.inlineBlocks ?? []).map((block) => block.slug),
+  }
+}
+
+// Block node types render via a per-slug sub-map (`blocks[blockType]` /
+// `inlineBlocks[blockType]`), never via a top-level key of the node type.
+const BLOCK_NODE_SUBMAPS: Record<string, "blocks" | "inlineBlocks"> = {
+  block: "blocks",
+  inlineBlock: "inlineBlocks",
+}
+
 /**
  * Coverage invariant: enabling a feature does NOT auto-register its render
  * converter, and the `/html` defaults omit the code-block converter. This helper
- * asserts every enabled feature node type has a key in the converter map, so a
- * silently-dropped node becomes a test/startup failure instead of vanishing at
- * render time.
- *
- * NOTE: block-based features (e.g. the premade `CodeBlock`) register a single
- * `block` node type; T2's converter map must therefore provide a `block` key
- * (dispatching per `blockType`). Returns the enabled node types on success.
+ * asserts every enabled feature node type has a key in the converter map, and
+ * every enabled block slug has an entry in `blocks` / `inlineBlocks` (the maps
+ * the renderer actually dispatches through), so a silently-dropped node becomes
+ * a test failure instead of vanishing at render time. Returns the enabled node
+ * types on success.
  */
 export function assertConverterCoverage(args: {
   converters: LexicalConverterMap
@@ -44,24 +73,22 @@ export function assertConverterCoverage(args: {
 }): string[] {
   const { converters, editorConfig } = args
   const enabled = getEnabledNodeTypes(editorConfig)
-  const missing = enabled.filter((type) => !(type in converters))
+  const missing = enabled.filter((type) => !(type in BLOCK_NODE_SUBMAPS) && !(type in converters))
+
+  const slugs = getEnabledBlockSlugs(editorConfig)
+  for (const submap of ["blocks", "inlineBlocks"] as const) {
+    const registered = (converters[submap] ?? {}) as Record<string, unknown>
+    for (const slug of slugs[submap]) {
+      if (!(slug in registered)) missing.push(`${submap}.${slug}`)
+    }
+  }
 
   if (missing.length > 0) {
     throw new Error(
-      `Lexical converter coverage gap — no converter registered for node type(s): ` +
-        `${missing.join(", ")}. Add matching entries to the converter map (T2).`,
+      `Lexical converter coverage gap — no converter registered for: ` +
+        `${missing.join(", ")}. Add matching entries to the converter map.`,
     )
   }
 
   return enabled
 }
-
-/**
- * The real render converter map (T2). Built in ./render (it needs the async
- * `@payloadcms/richtext-lexical/html-async` converters + the hand-written
- * `blocks.Code` + inline-image converters), re-exported here as the coverage
- * source of truth. Includes a top-level `block` key so the coverage assertion —
- * which keys off the enabled `block` node type — is satisfied, even though the
- * renderer dispatches blocks via `blocks[blockType]`.
- */
-export { LEXICAL_CONVERTER_MAP } from "./render"

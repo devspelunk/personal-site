@@ -7,7 +7,7 @@ import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { Testimonials } from "@/components/homepage/Testimonials"
 import { Button } from "@/components/ui/button"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { EMPTY_LEXICAL, isLexicalEmpty, renderLexical } from "@/lib/markdown"
+import { isLexicalEmpty, renderLexical } from "@/lib/lexical/render"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
@@ -76,7 +76,7 @@ export default async function AboutPage() {
     console.error("[AboutPage] payload fetch failed", error)
   }
 
-  const { html: bioHtml } = await renderLexical(settings.bio ?? EMPTY_LEXICAL)
+  const { html: bioHtml } = await renderLexical(settings.bio)
 
   const careerEntriesForAbout = await Promise.all(
     entries.map(async (entry) => {

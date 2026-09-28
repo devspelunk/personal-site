@@ -54,6 +54,9 @@ export default async function ProjectsPage() {
     const result = await payload.find({
       collection: "projects",
       depth: 1,
+      // Cards never show the rich-text description; skip populating the uploads
+      // and links inside it.
+      select: { description: false },
       overrideAccess: false,
       sort: "sort_order",
       limit: 100,

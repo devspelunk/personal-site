@@ -9,9 +9,13 @@ import sharp from "sharp"
 import { beforeAll, describe, expect, it } from "vitest"
 
 import { Media } from "@/collections/Media"
-import { assertConverterCoverage, buildEditorConfig, getEnabledNodeTypes } from "@/lib/lexical"
-import { LEXICAL_CONVERTER_MAP } from "@/lib/lexical/render"
-import { isLexicalEmpty, renderLexical, lexicalToPlainText } from "@/lib/lexical/render"
+import { assertConverterCoverage, buildEditorConfig, getEnabledBlockSlugs } from "@/lib/lexical"
+import {
+  buildLexicalConverters,
+  isLexicalEmpty,
+  lexicalToPlainText,
+  renderLexical,
+} from "@/lib/lexical/render"
 import { renderMarkdown } from "@/lib/markdown"
 
 import {
@@ -54,29 +58,37 @@ beforeAll(async () => {
 })
 
 describe("converter coverage", () => {
-  it("registers a converter for every enabled feature node type", () => {
-    const enabled = assertConverterCoverage({
-      converters: LEXICAL_CONVERTER_MAP,
-      editorConfig,
-    })
+  const converters = () =>
+    buildLexicalConverters({ headings: [], slugCounts: new Map() }) as Record<string, unknown>
+
+  it("registers a converter for every enabled feature node type and block slug", () => {
+    const enabled = assertConverterCoverage({ converters: converters(), editorConfig })
 
     // Sanity: the feature set really does register the node types we handle.
     expect(enabled).toContain("block")
     expect(enabled).toContain("inlineImage")
     expect(enabled).toContain("upload")
-  })
-
-  it("provides a top-level `block` key (BlocksFeature registers one `block` node)", () => {
-    expect("block" in LEXICAL_CONVERTER_MAP).toBe(true)
-    // And the real render dispatch key for the CodeBlock.
-    expect((LEXICAL_CONVERTER_MAP as { blocks?: Record<string, unknown> }).blocks).toHaveProperty(
-      "Code",
-    )
+    expect(getEnabledBlockSlugs(editorConfig).blocks).toEqual(["Code"])
   })
 
   it("throws if the map is missing an enabled node type", () => {
     expect(() => assertConverterCoverage({ converters: {}, editorConfig })).toThrow(
       /coverage gap/i,
+    )
+  })
+
+  it("throws if an enabled block slug has no `blocks` converter", () => {
+    const { blocks: _blocks, ...withoutBlocks } = converters()
+    void _blocks
+    expect(() => assertConverterCoverage({ converters: withoutBlocks, editorConfig })).toThrow(
+      /blocks\.Code/,
+    )
+  })
+
+  it("does not accept a top-level `block` key in place of per-slug converters", () => {
+    const map = { ...converters(), block: () => "", blocks: {} }
+    expect(() => assertConverterCoverage({ converters: map, editorConfig })).toThrow(
+      /blocks\.Code/,
     )
   })
 })

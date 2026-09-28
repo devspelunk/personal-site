@@ -99,8 +99,8 @@ export function buildEditorConfig(
 
 export {
   assertConverterCoverage,
+  getEnabledBlockSlugs,
   getEnabledNodeTypes,
-  LEXICAL_CONVERTER_MAP,
   type LexicalConverterMap,
 } from "./coverage"
 export { InlineImageFeature } from "./inline-image/server"

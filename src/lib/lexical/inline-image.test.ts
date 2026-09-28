@@ -9,7 +9,12 @@ import sharp from "sharp"
 import { beforeAll, describe, expect, it } from "vitest"
 
 import { Media } from "@/collections/Media"
-import { assertConverterCoverage, buildEditorConfig, getEnabledNodeTypes } from "@/lib/lexical"
+import {
+  assertConverterCoverage,
+  buildEditorConfig,
+  getEnabledBlockSlugs,
+  getEnabledNodeTypes,
+} from "@/lib/lexical"
 
 // A minimal sanitized Payload config is enough to sanitize the shared editor
 // config: only the `media` collection is referenced (by the Upload feature).
@@ -53,10 +58,13 @@ describe("coverage assertion scaffold", () => {
     ).toThrow(/coverage gap/i)
   })
 
-  it("passes when every enabled node type has a converter key", () => {
-    const converters = Object.fromEntries(
-      getEnabledNodeTypes(editorConfig).map((type) => [type, () => ""]),
-    )
+  it("passes when every enabled node type and block slug has a converter", () => {
+    const converters = {
+      ...Object.fromEntries(getEnabledNodeTypes(editorConfig).map((type) => [type, () => ""])),
+      blocks: Object.fromEntries(
+        getEnabledBlockSlugs(editorConfig).blocks.map((slug) => [slug, () => ""]),
+      ),
+    }
 
     expect(() => assertConverterCoverage({ converters, editorConfig })).not.toThrow()
   })

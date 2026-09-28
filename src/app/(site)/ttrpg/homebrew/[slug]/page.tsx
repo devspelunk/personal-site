@@ -6,7 +6,7 @@ import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { formatHomebrewTypeLabel } from "@/components/ttrpg/ttrpg-labels"
 import { Badge } from "@/components/ui/badge"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { EMPTY_LEXICAL, lexicalToPlainText, renderLexical } from "@/lib/markdown"
+import { lexicalToPlainText, renderLexical } from "@/lib/lexical/render"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass } from "@/lib/utils"
@@ -87,7 +87,7 @@ export default async function TtrpgHomebrewPage({
   const campaign =
     entry.campaign && typeof entry.campaign === "object" ? entry.campaign : null
 
-  const { html } = await renderLexical(entry.body ?? EMPTY_LEXICAL)
+  const { html } = await renderLexical(entry.body)
 
   const siteUrl = getServerSiteUrl()
   const breadcrumbLd = buildBreadcrumbJsonLd([

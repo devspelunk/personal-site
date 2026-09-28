@@ -1,17 +1,11 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import readingTime from "reading-time"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { RelatedPosts } from "@/components/blog/RelatedPosts"
 import { TableOfContents } from "@/components/blog/TableOfContents"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import {
-  EMPTY_LEXICAL,
-  isLexicalEmpty,
-  lexicalToPlainText,
-  renderLexical,
-} from "@/lib/markdown"
+import { lexicalReadTime, renderLexical } from "@/lib/lexical/render"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass, formatDate } from "@/lib/utils"
@@ -99,9 +93,7 @@ export default async function BlogPostPage({
     notFound()
   }
 
-  const { html, headings, readTime } = await renderLexical(
-    post.body ?? EMPTY_LEXICAL,
-  )
+  const { html, headings, readTime } = await renderLexical(post.body)
 
   const displayTags = resolveTags(post.tags)
   const tagIds = displayTags.map((tag) => tag.id)
@@ -124,9 +116,7 @@ export default async function BlogPostPage({
     slug: p.slug,
     title: p.title,
     date_published: p.date_published ?? null,
-    readTime: isLexicalEmpty(p.body)
-      ? null
-      : Math.ceil(readingTime(lexicalToPlainText(p.body)).minutes),
+    readTime: lexicalReadTime(p.body),
   }))
 
   const siteUrl = getServerSiteUrl()

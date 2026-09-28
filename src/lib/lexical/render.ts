@@ -129,6 +129,30 @@ export function isLexicalEmpty(data: SerializedEditorState | null | undefined): 
   return !children.some(hasNonTextContent) && lexicalToPlainText(data) === ""
 }
 
+/**
+ * Returns the reading time in whole minutes, or `null` when the body has no
+ * content (so list cards omit "0 min read", as they did for empty Markdown).
+ */
+export function lexicalReadTime(data: SerializedEditorState | null | undefined): number | null {
+  return isLexicalEmpty(data) ? null : Math.ceil(readingTime(lexicalToPlainText(data)).minutes)
+}
+
+/**
+ * Empty Lexical document. Render fallback for a null/absent richText field so a
+ * page with no body content renders an empty article instead of throwing on
+ * `data.root`.
+ */
+export const EMPTY_LEXICAL: SerializedEditorState = {
+  root: {
+    type: "root",
+    children: [],
+    direction: null,
+    format: "",
+    indent: 0,
+    version: 1,
+  },
+}
+
 // Internal links resolve to the doc's canonical detail route via the shared
 // `detailPathFor` map (the Payload slug is NOT the URL path — e.g. `blog-posts`
 // → `/blog/x`, `ttrpg-lore` → `/ttrpg/lore/x`). Requires the referenced doc to
@@ -191,14 +215,9 @@ export function buildLexicalConverters(ctx: {
       return `<img src="${src}" alt="${alt}" />`
     },
 
-    // BlocksFeature registers both a `block` and an `inlineBlock` node type; at
-    // render time, block nodes are dispatched via `blocks[blockType]` /
-    // `inlineBlocks[blockType]` (findConverterForNode), so these top-level keys
-    // are never invoked — they exist only so the coverage assertion (keyed on
-    // the enabled `block`/`inlineBlock` node types) is satisfied. We ship no
-    // inline blocks, so `inlineBlock` renders nothing.
-    block: () => "",
-    inlineBlock: () => "",
+    // Block nodes dispatch via `blocks[blockType]` (findConverterForNode), so
+    // each enabled block slug needs an entry here; `assertConverterCoverage`
+    // checks this against the sanitized config.
     blocks: {
       // Multi-line code: emit the same highlighted markup as a ```lang fence.
       Code: async ({ node }) => {
@@ -208,15 +227,6 @@ export function buildLexicalConverters(ctx: {
     },
   } as HTMLConvertersAsync
 }
-
-/**
- * A concrete converter map instance used for the coverage assertion (which only
- * inspects keys) and re-exported as the "real" map from ./coverage.
- */
-export const LEXICAL_CONVERTER_MAP = buildLexicalConverters({
-  headings: [],
-  slugCounts: new Map(),
-})
 
 export interface RenderLexicalOptions {
   /**
@@ -228,17 +238,19 @@ export interface RenderLexicalOptions {
 }
 
 /**
- * Renders a Lexical editor state to `{ html, headings, readTime }`.
+ * Renders a Lexical editor state to `{ html, headings, readTime }`. A null or
+ * absent value renders as an empty document.
  *
  * The caller must fetch `data` at **depth ≥1** (so Upload node values are
  * populated Media docs) or pass a `populate` fn — otherwise embedded uploads
  * render as empty strings.
  */
 export async function renderLexical(
-  data: SerializedEditorState,
+  value: SerializedEditorState | null | undefined,
   options: RenderLexicalOptions = {},
 ): Promise<{ html: string; headings: Heading[]; readTime: number }> {
   const { populate } = options
+  const data = value ?? EMPTY_LEXICAL
   const headings: Heading[] = []
   const slugCounts = new Map<string, number>()
 

@@ -65,6 +65,8 @@ export default async function TtrpgPage() {
 
   try {
     const payload = await getPayload()
+    // Rich-text bodies are never shown here; `select` drops them so depth 1
+    // only populates tags/campaigns, not every upload and link inside a body.
     const [campaignsRes, journalsRes, charactersRes, loreRes, homebrewRes] =
       await Promise.all([
         payload.find({
@@ -77,6 +79,7 @@ export default async function TtrpgPage() {
         payload.find({
           collection: "ttrpg-journals",
           depth: 1,
+          select: { body: false },
           limit: 0,
           sort: "-session_date",
           ...PUBLIC_READ,
@@ -84,6 +87,7 @@ export default async function TtrpgPage() {
         payload.find({
           collection: "ttrpg-characters",
           depth: 1,
+          select: { backstory: false },
           limit: 0,
           sort: "name",
           ...PUBLIC_READ,
@@ -91,6 +95,7 @@ export default async function TtrpgPage() {
         payload.find({
           collection: "ttrpg-lore",
           depth: 1,
+          select: { body: false },
           limit: 0,
           sort: "title",
           ...PUBLIC_READ,
@@ -98,6 +103,7 @@ export default async function TtrpgPage() {
         payload.find({
           collection: "ttrpg-homebrew",
           depth: 1,
+          select: { body: false },
           limit: 0,
           sort: "title",
           ...PUBLIC_READ,
