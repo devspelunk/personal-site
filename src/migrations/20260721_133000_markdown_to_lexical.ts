@@ -8,100 +8,63 @@ import { buildEditorConfig } from '../lib/lexical'
  *
  * Retypes every long-form field from a Markdown `varchar` (`*_markdown`) to a
  * Lexical `jsonb` column under a clean name (`body` / `description` /
- * `backstory` / `bio`). Per the content audit, only `career_entries` (9) and
- * `site_settings` (1) hold data; every other content table and all six
- * `_versions` tables are empty, so those get a straight column replace with no
- * data to convert.
+ * `backstory` / `bio`), on each collection table and its `_versions` table.
  *
- * For the two non-empty tables the DDL (ADD the jsonb column) precedes the data
- * write so the backfill can convert each Markdown row through
- * `convertMarkdownToLexical` and persist it via the Local API (which runs field
- * validation); the old `*_markdown` column is dropped only afterwards. All of
- * this runs inside the migration's transaction (`req`).
+ * Every column goes through the same add → backfill → drop sequence rather
+ * than trusting a point-in-time content audit to say which tables are empty:
+ * on an empty table the backfill is a no-op, and on a non-empty one no Markdown
+ * is dropped before it has been converted. Rows are written with raw SQL (not
+ * the Local API) so the backfill doesn't trigger hooks or mint new versions,
+ * and so `_versions` rows can be converted in place. All of this runs inside
+ * the migration's transaction.
  */
-export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
-  // 1. Empty collections + their `_versions` tables — nothing to convert, so
-  //    just drop the Markdown varchar and add the clean-named jsonb column.
-  await db.execute(sql`
-   ALTER TABLE "blog_posts" DROP COLUMN "body_markdown";
-   ALTER TABLE "blog_posts" ADD COLUMN "body" jsonb;
-   ALTER TABLE "_blog_posts_v" DROP COLUMN "version_body_markdown";
-   ALTER TABLE "_blog_posts_v" ADD COLUMN "version_body" jsonb;
+const COLUMNS: ReadonlyArray<{ table: string; from: string; to: string }> = [
+  { table: 'blog_posts', from: 'body_markdown', to: 'body' },
+  { table: '_blog_posts_v', from: 'version_body_markdown', to: 'version_body' },
+  { table: 'projects', from: 'description_markdown', to: 'description' },
+  { table: '_projects_v', from: 'version_description_markdown', to: 'version_description' },
+  { table: 'ttrpg_lore', from: 'body_markdown', to: 'body' },
+  { table: '_ttrpg_lore_v', from: 'version_body_markdown', to: 'version_body' },
+  { table: 'ttrpg_journals', from: 'body_markdown', to: 'body' },
+  { table: '_ttrpg_journals_v', from: 'version_body_markdown', to: 'version_body' },
+  { table: 'ttrpg_homebrew', from: 'body_markdown', to: 'body' },
+  { table: '_ttrpg_homebrew_v', from: 'version_body_markdown', to: 'version_body' },
+  { table: 'ttrpg_characters', from: 'backstory_markdown', to: 'backstory' },
+  { table: '_ttrpg_characters_v', from: 'version_backstory_markdown', to: 'version_backstory' },
+  { table: 'career_entries', from: 'description_markdown', to: 'description' },
+  { table: 'site_settings', from: 'bio_markdown', to: 'bio' },
+]
 
-   ALTER TABLE "projects" DROP COLUMN "description_markdown";
-   ALTER TABLE "projects" ADD COLUMN "description" jsonb;
-   ALTER TABLE "_projects_v" DROP COLUMN "version_description_markdown";
-   ALTER TABLE "_projects_v" ADD COLUMN "version_description" jsonb;
-
-   ALTER TABLE "ttrpg_lore" DROP COLUMN "body_markdown";
-   ALTER TABLE "ttrpg_lore" ADD COLUMN "body" jsonb;
-   ALTER TABLE "_ttrpg_lore_v" DROP COLUMN "version_body_markdown";
-   ALTER TABLE "_ttrpg_lore_v" ADD COLUMN "version_body" jsonb;
-
-   ALTER TABLE "ttrpg_journals" DROP COLUMN "body_markdown";
-   ALTER TABLE "ttrpg_journals" ADD COLUMN "body" jsonb;
-   ALTER TABLE "_ttrpg_journals_v" DROP COLUMN "version_body_markdown";
-   ALTER TABLE "_ttrpg_journals_v" ADD COLUMN "version_body" jsonb;
-
-   ALTER TABLE "ttrpg_homebrew" DROP COLUMN "body_markdown";
-   ALTER TABLE "ttrpg_homebrew" ADD COLUMN "body" jsonb;
-   ALTER TABLE "_ttrpg_homebrew_v" DROP COLUMN "version_body_markdown";
-   ALTER TABLE "_ttrpg_homebrew_v" ADD COLUMN "version_body" jsonb;
-
-   ALTER TABLE "ttrpg_characters" DROP COLUMN "backstory_markdown";
-   ALTER TABLE "ttrpg_characters" ADD COLUMN "backstory" jsonb;
-   ALTER TABLE "_ttrpg_characters_v" DROP COLUMN "version_backstory_markdown";
-   ALTER TABLE "_ttrpg_characters_v" ADD COLUMN "version_backstory" jsonb;
-  `)
-
-  // 2. Non-empty tables — add the jsonb column first, then backfill each row.
-  await db.execute(sql`
-   ALTER TABLE "career_entries" ADD COLUMN "description" jsonb;
-   ALTER TABLE "site_settings" ADD COLUMN "bio" jsonb;
-  `)
-
+export async function up({ db, payload }: MigrateUpArgs): Promise<void> {
   const editorConfig = await buildEditorConfig(payload.config)
 
-  // career_entries: 9 tight bullet-list Markdown descriptions.
-  const careerRows = await db.execute(sql`
-   SELECT "id", "description_markdown"
-   FROM "career_entries"
-   WHERE "description_markdown" IS NOT NULL;
-  `)
-  for (const row of careerRows.rows) {
-    const markdown = row.description_markdown as string
-    const description = convertMarkdownToLexical({ editorConfig, markdown })
-    await payload.update({
-      collection: 'career-entries',
-      id: row.id as number,
-      data: { description },
-      req,
-      overrideAccess: true,
-    })
-  }
+  for (const { table, from, to } of COLUMNS) {
+    const t = sql.identifier(table)
+    const src = sql.identifier(from)
+    const dest = sql.identifier(to)
 
-  // site_settings: single global with a 1–2 paragraph bio.
-  const siteRows = await db.execute(sql`
-   SELECT "id", "bio_markdown"
-   FROM "site_settings"
-   WHERE "bio_markdown" IS NOT NULL;
-  `)
-  for (const row of siteRows.rows) {
-    const markdown = row.bio_markdown as string
-    const bio = convertMarkdownToLexical({ editorConfig, markdown })
-    await payload.updateGlobal({
-      slug: 'site-settings',
-      data: { bio },
-      req,
-      overrideAccess: true,
-    })
-  }
+    await db.execute(sql`ALTER TABLE ${t} ADD COLUMN ${dest} jsonb;`)
 
-  // 3. Data is migrated — drop the now-unused Markdown columns.
-  await db.execute(sql`
-   ALTER TABLE "career_entries" DROP COLUMN "description_markdown";
-   ALTER TABLE "site_settings" DROP COLUMN "bio_markdown";
-  `)
+    // Blank Markdown stays NULL so "no content" checks keep treating it as empty.
+    const rows = await db.execute(sql`
+     SELECT "id", ${src} AS "markdown"
+     FROM ${t}
+     WHERE ${src} IS NOT NULL AND btrim(${src}) <> '';
+    `)
+    for (const row of rows.rows) {
+      const lexical = convertMarkdownToLexical({
+        editorConfig,
+        markdown: row.markdown as string,
+      })
+      await db.execute(sql`
+       UPDATE ${t} SET ${dest} = ${JSON.stringify(lexical)}::jsonb
+       WHERE "id" = ${row.id};
+      `)
+    }
+
+    // Only drop the Markdown once every row has been converted.
+    await db.execute(sql`ALTER TABLE ${t} DROP COLUMN ${src};`)
+  }
 }
 
 /**

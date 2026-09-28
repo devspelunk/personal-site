@@ -6,9 +6,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     # Publish Postgres to the host so scripts run from your machine
-    # (e.g. `pnpm import-resume`) can reach it at localhost:5432.
+    # (e.g. `pnpm import-resume`) can reach it at localhost:5432. Bound to
+    # loopback only: Docker's iptables rules bypass ufw, so a bare "5432:5432"
+    # would expose the database on every interface of the VPS.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./init-db:/docker-entrypoint-initdb.d:ro
       - postgres_data:/var/lib/postgresql/data
