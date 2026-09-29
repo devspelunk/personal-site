@@ -1,4 +1,3 @@
-import readingTime from "reading-time"
 
 import { CareerHighlights } from "@/components/homepage/CareerHighlights"
 import { FeaturedProjects } from "@/components/homepage/FeaturedProjects"
@@ -10,6 +9,7 @@ import { Testimonials } from "@/components/homepage/Testimonials"
 import { VectorAccent } from "@/components/ornament/VectorAccent"
 import { fetchGitHubContributions } from "@/lib/github"
 import { jsonLdScriptHtml } from "@/lib/jsonld"
+import { lexicalReadTime } from "@/lib/lexical/render"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
@@ -73,6 +73,7 @@ export default async function HomePage() {
       projectsRes,
       careerRes,
       blogRes,
+      blogBodiesRes,
       techRes,
       testimonialsRes,
     ] = await Promise.all([
@@ -80,6 +81,9 @@ export default async function HomePage() {
       payload.find({
         collection: "projects",
         depth: 1,
+        // Cards never show the rich-text description; skip populating the uploads
+        // and links inside it.
+        select: { description: false },
         where: { is_featured: { equals: true } },
         sort: "sort_order",
         limit: 3,
@@ -96,6 +100,16 @@ export default async function HomePage() {
       payload.find({
         collection: "blog-posts",
         depth: 1,
+        select: { body: false },
+        sort: "-date_published",
+        limit: 3,
+        ...PUBLIC_READ,
+      }),
+      // Body text for read time only: depth 0 skips populating its uploads/links.
+      payload.find({
+        collection: "blog-posts",
+        depth: 0,
+        select: { body: true },
         sort: "-date_published",
         limit: 3,
         ...PUBLIC_READ,
@@ -138,15 +152,16 @@ export default async function HomePage() {
     techStackItems = techRes.docs
     testimonials = testimonialsRes.docs
 
+    const readTimes = new Map(
+      blogBodiesRes.docs.map((post) => [post.id, lexicalReadTime(post.body)]),
+    )
     latestBlogPosts = blogRes.docs.map((post) => ({
       id: post.id,
       slug: post.slug,
       title: post.title,
       excerpt: post.excerpt ?? null,
       date_published: post.date_published ?? null,
-      readTime: post.body_markdown
-        ? Math.ceil(readingTime(post.body_markdown).minutes)
-        : null,
+      readTime: readTimes.get(post.id) ?? null,
       tags: resolveTags(post.tags),
     }))
   } catch (error) {

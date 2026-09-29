@@ -42,7 +42,7 @@ const FALLBACK_SITE_SETTINGS: SiteSetting = {
   full_name: null,
   role: null,
   tagline: null,
-  bio_markdown: null,
+  bio: null,
   avatar: null,
   resume_pdf: null,
   github_username: null,

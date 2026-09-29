@@ -19,6 +19,7 @@ import { TtrpgJournals } from "./collections/TtrpgJournals"
 import { TtrpgLore } from "./collections/TtrpgLore"
 import { Users } from "./collections/Users"
 import { SiteSettings } from "./globals/SiteSettings"
+import { richTextEditor } from "./lib/lexical"
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -27,6 +28,7 @@ export default buildConfig({
   admin: {
     user: "users",
   },
+  editor: richTextEditor,
   collections: [
     Users,
     Media,

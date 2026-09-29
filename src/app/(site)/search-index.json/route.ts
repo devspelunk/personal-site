@@ -96,41 +96,49 @@ export async function GET() {
   try {
     const payload = await getPayload()
 
+    // Rich-text bodies are never shown here; `select` drops them so depth 1
+    // only populates tags/campaigns, not every upload and link inside a body.
     const [blogPosts, projects, journals, characters, lore, homebrew] =
       await Promise.all([
         payload.find({
           collection: "blog-posts",
           depth: 1,
+          select: { body: false },
           limit: 0,
           ...PUBLIC_READ,
         }),
         payload.find({
           collection: "projects",
           depth: 1,
+          select: { description: false },
           limit: 0,
           ...PUBLIC_READ,
         }),
         payload.find({
           collection: "ttrpg-journals",
           depth: 1,
+          select: { body: false },
           limit: 0,
           ...PUBLIC_READ,
         }),
         payload.find({
           collection: "ttrpg-characters",
           depth: 1,
+          select: { backstory: false },
           limit: 0,
           ...PUBLIC_READ,
         }),
         payload.find({
           collection: "ttrpg-lore",
           depth: 1,
+          select: { body: false },
           limit: 0,
           ...PUBLIC_READ,
         }),
         payload.find({
           collection: "ttrpg-homebrew",
           depth: 1,
+          select: { body: false },
           limit: 0,
           ...PUBLIC_READ,
         }),

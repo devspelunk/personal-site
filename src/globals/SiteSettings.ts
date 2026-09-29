@@ -29,8 +29,8 @@ export const SiteSettings: GlobalConfig = {
       type: "text",
     },
     {
-      name: "bio_markdown",
-      type: "textarea",
+      name: "bio",
+      type: "richText",
     },
     {
       name: "avatar",

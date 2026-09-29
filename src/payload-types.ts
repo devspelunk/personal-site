@@ -206,7 +206,21 @@ export interface BlogPost {
   id: number;
   title: string;
   slug: string;
-  body_markdown?: string | null;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   excerpt?: string | null;
   is_featured?: boolean | null;
   featured_image?: (number | null) | Media;
@@ -224,7 +238,21 @@ export interface Project {
   id: number;
   title: string;
   slug: string;
-  description_markdown?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   short_description?: string | null;
   is_featured?: boolean | null;
   role?: string | null;
@@ -262,7 +290,21 @@ export interface TtrpgJournal {
   slug: string;
   campaign?: (number | null) | Campaign;
   session_number?: number | null;
-  body_markdown?: string | null;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   excerpt?: string | null;
   session_date?: string | null;
   updatedAt: string;
@@ -279,7 +321,21 @@ export interface TtrpgCharacter {
   slug: string;
   campaign?: (number | null) | Campaign;
   class_role?: string | null;
-  backstory_markdown?: string | null;
+  backstory?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   stats_overview?: string | null;
   portrait?: (number | null) | Media;
   updatedAt: string;
@@ -296,7 +352,21 @@ export interface TtrpgLore {
   slug: string;
   campaign?: (number | null) | Campaign;
   category: 'faction' | 'location' | 'timeline' | 'event' | 'item';
-  body_markdown?: string | null;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -311,7 +381,21 @@ export interface TtrpgHomebrew {
   slug: string;
   campaign?: (number | null) | Campaign;
   type: 'character_class' | 'magic_item' | 'rule_variant' | 'monster' | 'spell';
-  body_markdown?: string | null;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -327,7 +411,21 @@ export interface CareerEntry {
   date_start: string;
   date_end?: string | null;
   highlight?: string | null;
-  description_markdown?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   is_homepage_highlight?: boolean | null;
   sort_order?: number | null;
   updatedAt: string;
@@ -537,7 +635,7 @@ export interface TagsSelect<T extends boolean = true> {
 export interface BlogPostsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
-  body_markdown?: T;
+  body?: T;
   excerpt?: T;
   is_featured?: T;
   featured_image?: T;
@@ -554,7 +652,7 @@ export interface BlogPostsSelect<T extends boolean = true> {
 export interface ProjectsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
-  description_markdown?: T;
+  description?: T;
   short_description?: T;
   is_featured?: T;
   role?: T;
@@ -590,7 +688,7 @@ export interface TtrpgJournalsSelect<T extends boolean = true> {
   slug?: T;
   campaign?: T;
   session_number?: T;
-  body_markdown?: T;
+  body?: T;
   excerpt?: T;
   session_date?: T;
   updatedAt?: T;
@@ -606,7 +704,7 @@ export interface TtrpgCharactersSelect<T extends boolean = true> {
   slug?: T;
   campaign?: T;
   class_role?: T;
-  backstory_markdown?: T;
+  backstory?: T;
   stats_overview?: T;
   portrait?: T;
   updatedAt?: T;
@@ -622,7 +720,7 @@ export interface TtrpgLoreSelect<T extends boolean = true> {
   slug?: T;
   campaign?: T;
   category?: T;
-  body_markdown?: T;
+  body?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -636,7 +734,7 @@ export interface TtrpgHomebrewSelect<T extends boolean = true> {
   slug?: T;
   campaign?: T;
   type?: T;
-  body_markdown?: T;
+  body?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -651,7 +749,7 @@ export interface CareerEntriesSelect<T extends boolean = true> {
   date_start?: T;
   date_end?: T;
   highlight?: T;
-  description_markdown?: T;
+  description?: T;
   is_homepage_highlight?: T;
   sort_order?: T;
   updatedAt?: T;
@@ -733,7 +831,21 @@ export interface SiteSetting {
   full_name?: string | null;
   role?: string | null;
   tagline?: string | null;
-  bio_markdown?: string | null;
+  bio?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   avatar?: (number | null) | Media;
   resume_pdf?: (number | null) | Media;
   github_username?: string | null;
@@ -752,7 +864,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   full_name?: T;
   role?: T;
   tagline?: T;
-  bio_markdown?: T;
+  bio?: T;
   avatar?: T;
   resume_pdf?: T;
   github_username?: T;

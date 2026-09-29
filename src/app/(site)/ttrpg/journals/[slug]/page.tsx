@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderMarkdown } from "@/lib/markdown"
+import { renderLexical } from "@/lib/lexical/render"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass, formatDate } from "@/lib/utils"
@@ -84,7 +84,7 @@ export default async function TtrpgJournalPage({
   const campaign =
     post.campaign && typeof post.campaign === "object" ? post.campaign : null
 
-  const { html } = await renderMarkdown(post.body_markdown ?? "")
+  const { html } = await renderLexical(post.body)
 
   const titleLine =
     post.session_number != null

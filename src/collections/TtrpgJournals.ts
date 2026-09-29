@@ -52,8 +52,8 @@ export const TtrpgJournals: CollectionConfig = {
       type: "number",
     },
     {
-      name: "body_markdown",
-      type: "textarea",
+      name: "body",
+      type: "richText",
     },
     {
       name: "excerpt",

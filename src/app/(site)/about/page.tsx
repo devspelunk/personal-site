@@ -7,7 +7,7 @@ import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { Testimonials } from "@/components/homepage/Testimonials"
 import { Button } from "@/components/ui/button"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderMarkdown } from "@/lib/markdown"
+import { isLexicalEmpty, renderLexical } from "@/lib/lexical/render"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
@@ -52,9 +52,11 @@ export default async function AboutPage() {
     const [settingsRes, careerRes, testimonialsRes] = await Promise.all([
       // depth 1 populates avatar + resume_pdf uploads.
       payload.findGlobal({ slug: "site-settings", depth: 1, ...PUBLIC_READ }),
+      // depth 1 populates inline Media uploads in each entry's rich-text
+      // description (uploads render empty at depth 0).
       payload.find({
         collection: "career-entries",
-        depth: 0,
+        depth: 1,
         sort: "sort_order",
         limit: 0,
         ...PUBLIC_READ,
@@ -74,15 +76,14 @@ export default async function AboutPage() {
     console.error("[AboutPage] payload fetch failed", error)
   }
 
-  const { html: bioHtml } = await renderMarkdown(settings.bio_markdown ?? "")
+  const { html: bioHtml } = await renderLexical(settings.bio)
 
   const careerEntriesForAbout = await Promise.all(
     entries.map(async (entry) => {
-      const md = entry.description_markdown?.trim()
-      if (!md) {
+      if (!entry.description || isLexicalEmpty(entry.description)) {
         return { ...entry }
       }
-      const { html } = await renderMarkdown(md)
+      const { html } = await renderLexical(entry.description)
       return { ...entry, descriptionHtml: html }
     })
   )

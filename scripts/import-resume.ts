@@ -6,15 +6,20 @@ import { stdin as input, stdout as output } from "node:process"
 import { createInterface } from "node:readline/promises"
 import { pathToFileURL } from "node:url"
 
-import config from "@payload-config"
+import { convertMarkdownToLexical } from "@payloadcms/richtext-lexical"
+import type { SanitizedServerEditorConfig } from "@payloadcms/richtext-lexical"
 import { getPayload, type Payload } from "payload"
 
+import { buildEditorConfig } from "../src/lib/lexical"
 import type { CareerEntry, SiteSetting, TechStackItem } from "../src/payload-types"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse") as (
   data: Buffer
 ) => Promise<{ text: string }>
+
+/** A Lexical richText value, as stored on the retyped `description`/`bio` fields. */
+type LexicalValue = NonNullable<CareerEntry["description"]>
 
 type ParsedCareer = Pick<
   CareerEntry,
@@ -23,7 +28,7 @@ type ParsedCareer = Pick<
   | "date_start"
   | "date_end"
   | "highlight"
-  | "description_markdown"
+  | "description"
   | "is_homepage_highlight"
   | "sort_order"
 >
@@ -33,12 +38,35 @@ type ParsedTech = Pick<
   "name" | "icon_slug" | "experience_years" | "context" | "sort_order"
 >
 
-type ParsedSitePatch = Pick<SiteSetting, "tagline" | "bio_markdown">
+type ParsedSitePatch = Pick<SiteSetting, "tagline" | "bio">
 
+/**
+ * Final, ready-to-write shape: `description`/`bio` hold Lexical richText. This
+ * is what `importToPayload` consumes.
+ */
 type DryRunPayload = {
   career_entries: ParsedCareer[]
   tech_stack_items: ParsedTech[]
   site_settings: ParsedSitePatch
+}
+
+/**
+ * Intermediate parse shape: the resume text is first parsed into Markdown
+ * strings (`*_markdown`), then converted to Lexical in a second async pass
+ * (`convertRawToLexical`) once the sanitized editor config is available.
+ */
+type RawCareer = Omit<ParsedCareer, "description"> & {
+  description_markdown: string | null
+}
+
+type RawSitePatch = Omit<ParsedSitePatch, "bio"> & {
+  bio_markdown: string | null
+}
+
+type RawParsed = {
+  career_entries: RawCareer[]
+  tech_stack_items: ParsedTech[]
+  site_settings: RawSitePatch
 }
 
 const MONTH_MAP: Record<string, string> = {
@@ -199,7 +227,7 @@ function stripBullet(line: string) {
   return line.replace(/^[-•*▪]\s*/, "").trim()
 }
 
-function parseExperienceBlock(lines: string[]): ParsedCareer | null {
+function parseExperienceBlock(lines: string[]): RawCareer | null {
   const dateLineIdx = lines.findIndex((l) => extractDateRange(l))
   if (dateLineIdx === -1) return null
   const dateLine = lines[dateLineIdx]!
@@ -339,9 +367,9 @@ function splitExperienceIntoJobChunks(experienceText: string) {
   return chunks
 }
 
-function parseExperienceSection(experienceText: string): ParsedCareer[] {
+function parseExperienceSection(experienceText: string): RawCareer[] {
   const chunks = splitExperienceIntoJobChunks(experienceText)
-  const entries: ParsedCareer[] = []
+  const entries: RawCareer[] = []
   for (const chunk of chunks) {
     const parsed = parseExperienceBlock(chunk)
     if (parsed) entries.push(parsed)
@@ -374,7 +402,7 @@ function parseExperienceSection(experienceText: string): ParsedCareer[] {
   return entries.map((e, i) => ({ ...e, sort_order: i }))
 }
 
-function parseResumeText(fullText: string): DryRunPayload {
+function parseResumeText(fullText: string): RawParsed {
   const normalized = normalizePdfResumeText(fullText).trim()
   const summaryLabels = /^(summary|objective|profile)$/i
   const experienceLabels =
@@ -412,6 +440,37 @@ function parseResumeText(fullText: string): DryRunPayload {
     career_entries,
     tech_stack_items,
     site_settings: { tagline, bio_markdown },
+  }
+}
+
+/**
+ * Second parse pass: convert the Markdown produced by `parseResumeText` into the
+ * Lexical richText now stored on `career_entries.description` and
+ * `site_settings.bio`. Uses the shared sanitized editor config so the emitted
+ * AST matches what the admin WYSIWYG (and the render layer) expects.
+ */
+function convertRawToLexical(
+  raw: RawParsed,
+  editorConfig: SanitizedServerEditorConfig
+): DryRunPayload {
+  const toLexical = (markdown: string | null): LexicalValue | null =>
+    markdown
+      ? (convertMarkdownToLexical({ editorConfig, markdown }) as LexicalValue)
+      : null
+
+  const career_entries: ParsedCareer[] = raw.career_entries.map(
+    ({ description_markdown, ...rest }) => ({
+      ...rest,
+      description: toLexical(description_markdown),
+    })
+  )
+
+  const { bio_markdown, ...siteRest } = raw.site_settings
+
+  return {
+    career_entries,
+    tech_stack_items: raw.tech_stack_items,
+    site_settings: { ...siteRest, bio: toLexical(bio_markdown) },
   }
 }
 
@@ -553,11 +612,11 @@ export async function importToPayload(
   }
 
   const siteData: Partial<
-    Pick<SiteSetting, "resume_pdf" | "bio_markdown" | "tagline">
+    Pick<SiteSetting, "resume_pdf" | "bio" | "tagline">
   > = {
     ...(resumeMediaId != null ? { resume_pdf: resumeMediaId } : {}),
-    ...(parsed.site_settings.bio_markdown != null
-      ? { bio_markdown: parsed.site_settings.bio_markdown }
+    ...(parsed.site_settings.bio != null
+      ? { bio: parsed.site_settings.bio }
       : {}),
     ...(parsed.site_settings.tagline != null
       ? { tagline: parsed.site_settings.tagline }
@@ -589,15 +648,27 @@ async function main() {
   const absoluteResumePath = resolve(process.cwd(), resumePath)
   const pdfBuffer = await readFile(absoluteResumePath)
   const { text } = await pdfParse(pdfBuffer)
-  const parsed = parseResumeText(text)
+  const raw = parseResumeText(text)
 
-  console.log(JSON.stringify(parsed, null, 2))
+  // Print the human-readable Markdown parse for review (the Lexical AST that
+  // actually gets written is noisy; the source Markdown is what to eyeball).
+  console.log(JSON.stringify(raw, null, 2))
 
   const ok = await confirmProceed()
   if (!ok) {
     console.log("Aborted. No changes were written to Payload.")
     process.exit(0)
   }
+
+  // Import the Payload config lazily, AFTER loadOptionalEnvFiles() has populated
+  // process.env. buildConfig() in payload.config.ts reads PAYLOAD_SECRET and
+  // DATABASE_URI at module-evaluation time, so a top-level static import would
+  // capture them before the .env files are loaded and fail with "missing secret key".
+  // The default export is a Promise<SanitizedConfig>; await it so it can feed
+  // both getPayload and the sanitized editor config used for Markdown→Lexical.
+  const config = await (await import("@payload-config")).default
+  const editorConfig = await buildEditorConfig(config)
+  const parsed = convertRawToLexical(raw, editorConfig)
 
   const payload = await getPayload({ config })
   const summary = await importToPayload(payload, parsed, absoluteResumePath)

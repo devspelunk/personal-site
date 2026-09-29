@@ -5,7 +5,7 @@ import { notFound } from "next/navigation"
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { Badge } from "@/components/ui/badge"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderMarkdown } from "@/lib/markdown"
+import { lexicalToPlainText, renderLexical } from "@/lib/lexical/render"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import { articleBodyClass } from "@/lib/utils"
@@ -48,11 +48,7 @@ export async function generateMetadata({
 
   const siteUrl = getServerSiteUrl()
   const url = `${siteUrl}/ttrpg/lore/${entry.slug}`
-  const plain =
-    entry.body_markdown
-      ?.replace(/[#*`_\[\]()]/g, " ")
-      .slice(0, 160)
-      .trim() ?? undefined
+  const plain = lexicalToPlainText(entry.body).slice(0, 160).trim() || undefined
 
   return {
     title: entry.title,
@@ -94,7 +90,7 @@ export default async function TtrpgLorePage({
   const campaign =
     entry.campaign && typeof entry.campaign === "object" ? entry.campaign : null
 
-  const { html } = await renderMarkdown(entry.body_markdown ?? "")
+  const { html } = await renderLexical(entry.body)
 
   const siteUrl = getServerSiteUrl()
   const breadcrumbLd = buildBreadcrumbJsonLd([

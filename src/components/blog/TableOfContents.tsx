@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 
-import type { Heading } from "@/lib/markdown"
+import type { Heading } from "@/lib/lexical/rehype"
 
 import { cn } from "@/lib/utils"
 

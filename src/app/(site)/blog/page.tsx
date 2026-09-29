@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
-import readingTime from "reading-time"
 
 import { BlogList, type BlogListPost } from "@/components/blog/BlogList"
 import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
+import { lexicalReadTime } from "@/lib/lexical/render"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import type { BlogPost, Tag } from "@/payload-types"
@@ -50,19 +50,26 @@ export default async function BlogPage({
   const selectedTagSlugs = normalizeTagParam(tagParam)
 
   let docs: BlogPost[] = []
+  let readTimes = new Map<number, number | null>()
   try {
     const payload = await getPayload()
     // overrideAccess: false runs `authenticatedOrPublished`, which constrains
     // anonymous reads to published docs (Local API otherwise defaults to
     // overrideAccess: true and would leak drafts).
-    const result = await payload.find({
+    const query = {
       collection: "blog-posts",
-      depth: 1,
       overrideAccess: false,
       sort: "-date_published",
       limit: 100,
-    })
+    } as const
+    // Tags need depth 1, but the body is only read for its text (read time), so
+    // it comes from a depth-0 query rather than populating its uploads/links.
+    const [result, bodies] = await Promise.all([
+      payload.find({ ...query, depth: 1, select: { body: false } }),
+      payload.find({ ...query, depth: 0, select: { body: true } }),
+    ])
     docs = result.docs
+    readTimes = new Map(bodies.docs.map((doc) => [doc.id, lexicalReadTime(doc.body)]))
   } catch (error) {
     console.error("[BlogPage] payload.find blog-posts (published list) failed", error)
   }
@@ -73,9 +80,7 @@ export default async function BlogPage({
     title: doc.title,
     excerpt: doc.excerpt ?? null,
     date_published: doc.date_published ?? null,
-    readTime: doc.body_markdown
-      ? Math.ceil(readingTime(doc.body_markdown).minutes)
-      : null,
+    readTime: readTimes.get(doc.id) ?? null,
     tags: resolveTags(doc.tags),
   }))
 
