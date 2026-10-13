@@ -149,6 +149,7 @@ export const internalLinksFixture = () =>
 /** A full document exercising the whole feature set at once. */
 export const fullFixture = () =>
   root(
+    heading("h1", text("Title")),
     heading("h2", text("Section")),
     heading("h2", text("Section")),
     paragraph(
@@ -193,6 +194,17 @@ export const fullFixture = () =>
       format: "",
       indent: 0,
       children: [listItem(1, text("one")), listItem(2, text("two"))],
+    },
+    {
+      type: "list",
+      listType: "number",
+      tag: "ol",
+      start: 1,
+      version: 1,
+      direction: "ltr",
+      format: "",
+      indent: 0,
+      children: [listItem(1, text("first")), listItem(2, text("second"))],
     },
     { type: "quote", version: 1, direction: "ltr", format: "", indent: 0, children: [text("a quote")] },
     { type: "horizontalrule", version: 1 },

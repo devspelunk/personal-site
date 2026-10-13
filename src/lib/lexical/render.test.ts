@@ -5,17 +5,14 @@ import {
 import readingTime from "reading-time"
 import { beforeAll, describe, expect, it } from "vitest"
 
-import {
-  assertConverterCoverage,
-  assertRenderCoverage,
-  getEnabledBlockSlugs,
-} from "@/lib/lexical/coverage"
+import { assertConverterCoverage, getEnabledBlockSlugs } from "@/lib/lexical/coverage"
 import {
   buildLexicalConverters,
   isLexicalEmpty,
   lexicalToPlainText,
   renderLexical,
 } from "@/lib/lexical/render"
+import { assertRenderCoverage } from "@/lib/lexical/render-coverage"
 
 import {
   codeFixture,
@@ -103,42 +100,16 @@ describe("renderLexical", () => {
   })
 
   it("renders a full document to stable html, headings and read time", async () => {
-    expect(await renderLexical(fullFixture())).toMatchInlineSnapshot(`
-      {
-        "headings": [
-          {
-            "id": "section",
-            "level": 2,
-            "text": "Section",
-          },
-          {
-            "id": "section-2",
-            "level": 2,
-            "text": "Section",
-          },
-        ],
-        "html": "<h2 id="section">Section</h2><h2 id="section-2">Section</h2><p>Plain <strong>bold</strong> <em>italic</em> <span style="text-decoration: line-through;">strike</span> <code>code</code></p><p><a href="https://example.com">external</a></p><p><a href="/blog/hello">internal</a></p><ul class="list-bullet"><li
-                class=""
-                style=""
-                value="1"
-              >one</li><li
-                class=""
-                style=""
-                value="2"
-              >two</li></ul><blockquote>a quote</blockquote><hr /><figure data-rehype-pretty-code-figure=""><pre tabindex="0" data-language="ts" data-theme="vesper"><code data-language="ts" data-theme="vesper" style="display: grid;"><span data-line=""><span style="color:#A0A0A0">const</span><span style="color:#FFF"> x</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> number</span><span style="color:#A0A0A0"> =</span><span style="color:#FFC799"> 1</span></span>
-      <span data-line=""><span style="color:#A0A0A0">function</span><span style="color:#FFC799"> greet</span><span style="color:#FFF">(name</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> string</span><span style="color:#FFF">) {</span></span>
-      <span data-line=""><span style="color:#A0A0A0">  return</span><span style="color:#99FFE4"> \`hi \${</span><span style="color:#FFF">name</span><span style="color:#99FFE4">}\`</span></span>
-      <span data-line=""><span style="color:#FFF">}</span></span></code></pre></figure><p>Before <img src="/x.png" alt="an image" /> after</p>
-              <img
-                alt="uploaded"
-                height="600"
-                src="/media/pic.png"
-                width="800"
-              />
-            ",
-        "readTime": 1,
-      }
-    `)
+    const { html, headings, readTime } = await renderLexical(fullFixture())
+
+    // Whitespace is normalized so Payload's converter formatting (newlines and
+    // indentation inside tags) doesn't churn the snapshot on upgrades; the
+    // markup itself stays pinned.
+    const normalizedHtml = html.replace(/\s+/g, " ").replace(/> </g, "><").trim()
+
+    expect(headings.map((h) => `${h.level}:${h.id}`)).toEqual(["1:title", "2:section", "2:section-2"])
+    expect(readTime).toBe(1)
+    expect(normalizedHtml).toMatchInlineSnapshot(`"<h1 id="title">Title</h1><h2 id="section">Section</h2><h2 id="section-2">Section</h2><p>Plain <strong>bold</strong><em>italic</em><span style="text-decoration: line-through;">strike</span><code>code</code></p><p><a href="https://example.com">external</a></p><p><a href="/blog/hello">internal</a></p><ul class="list-bullet"><li class="" style="" value="1" >one</li><li class="" style="" value="2" >two</li></ul><ol class="list-number"><li class="" style="" value="1" >first</li><li class="" style="" value="2" >second</li></ol><blockquote>a quote</blockquote><hr /><figure data-rehype-pretty-code-figure=""><pre tabindex="0" data-language="ts" data-theme="vesper"><code data-language="ts" data-theme="vesper" style="display: grid;"><span data-line=""><span style="color:#A0A0A0">const</span><span style="color:#FFF"> x</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> number</span><span style="color:#A0A0A0"> =</span><span style="color:#FFC799"> 1</span></span><span data-line=""><span style="color:#A0A0A0">function</span><span style="color:#FFC799"> greet</span><span style="color:#FFF">(name</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> string</span><span style="color:#FFF">) {</span></span><span data-line=""><span style="color:#A0A0A0"> return</span><span style="color:#99FFE4"> \`hi \${</span><span style="color:#FFF">name</span><span style="color:#99FFE4">}\`</span></span><span data-line=""><span style="color:#FFF">}</span></span></code></pre></figure><p>Before <img src="/x.png" alt="an image" /> after</p><img alt="uploaded" height="600" src="/media/pic.png" width="800" />"`)
   })
 
   it("renders the custom inline-image node as <img src alt>", async () => {

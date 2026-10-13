@@ -19,8 +19,8 @@ import { TtrpgJournals } from "./collections/TtrpgJournals"
 import { TtrpgLore } from "./collections/TtrpgLore"
 import { Users } from "./collections/Users"
 import { SiteSettings } from "./globals/SiteSettings"
-import { richTextEditor } from "./lib/lexical"
-import { assertRenderCoverage } from "./lib/lexical/coverage"
+import { richTextEditor } from "./lib/lexical/editor"
+import { assertRenderCoverage } from "./lib/lexical/render-coverage"
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)

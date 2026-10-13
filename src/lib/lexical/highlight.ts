@@ -1,7 +1,7 @@
 import type { Options as RehypePrettyCodeOptions } from "rehype-pretty-code"
 import rehypePrettyCode from "rehype-pretty-code"
 import rehypeStringify from "rehype-stringify"
-import { remark } from "remark"
+import { unified } from "unified"
 
 /**
  * Highlights a single code block with the site's shiki config. Used by the
@@ -18,14 +18,14 @@ import { remark } from "remark"
  * + amber) that sits with the acid-on-dark palette; the code-block surface is
  * themed via globals.css.
  */
-export const rehypePrettyCodeOptions: RehypePrettyCodeOptions = {
+const rehypePrettyCodeOptions: RehypePrettyCodeOptions = {
   theme: "vesper",
   keepBackground: false,
 }
 
-// A hast processor (no markdown parse step is ever invoked): we feed it a
-// hand-built code tree via `.run()` and compile with `rehype-stringify`.
-const codeHighlightProcessor = remark()
+// A parser-less hast processor: we feed it a hand-built code tree via `.run()`
+// and compile with `rehype-stringify`.
+const codeHighlightProcessor = unified()
   .use(rehypePrettyCode, rehypePrettyCodeOptions)
   .use(rehypeStringify)
 

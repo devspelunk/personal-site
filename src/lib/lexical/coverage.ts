@@ -1,8 +1,4 @@
 import type { SanitizedServerEditorConfig } from "@payloadcms/richtext-lexical"
-import type { SanitizedConfig } from "payload"
-
-import { buildEditorConfig } from "./index"
-import { buildLexicalConverters } from "./render"
 
 /**
  * Converter map keyed by Lexical node type (e.g. `paragraph`, `heading`,
@@ -70,10 +66,12 @@ const BLOCK_NODE_SUBMAPS: Record<string, "blocks" | "inlineBlocks"> = {
  * types on success.
  */
 export function assertConverterCoverage(args: {
-  converters: LexicalConverterMap
+  /** Any converter map, e.g. Payload's `HTMLConvertersAsync`. Only keys are read. */
+  converters: object
   editorConfig: SanitizedServerEditorConfig
 }): string[] {
-  const { converters, editorConfig } = args
+  const { editorConfig } = args
+  const converters = args.converters as LexicalConverterMap
   const enabled = getEnabledNodeTypes(editorConfig)
   const missing = enabled.filter((type) => !(type in BLOCK_NODE_SUBMAPS) && !(type in converters))
 
@@ -95,18 +93,3 @@ export function assertConverterCoverage(args: {
   return enabled
 }
 
-/**
- * Asserts the renderer's real converter map covers the shared editor feature
- * set. Run from Payload's `onInit` (payload.config.ts), so a feature enabled
- * without a matching converter fails at boot instead of silently dropping
- * content from rendered pages.
- */
-export async function assertRenderCoverage(config: SanitizedConfig): Promise<string[]> {
-  const editorConfig = await buildEditorConfig(config)
-  const converters = buildLexicalConverters({ headings: [], slugCounts: new Map() })
-
-  return assertConverterCoverage({
-    converters: converters as LexicalConverterMap,
-    editorConfig,
-  })
-}

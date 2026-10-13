@@ -3,7 +3,7 @@ import { buildConfig, type Config, type SanitizedConfig } from "payload"
 import sharp from "sharp"
 
 import { Media } from "@/collections/Media"
-import { buildEditorConfig } from "@/lib/lexical"
+import { buildEditorConfig } from "@/lib/lexical/editor"
 
 /**
  * Test-only helper. Sanitizes a minimal Payload config that references only the
@@ -14,12 +14,17 @@ import { buildEditorConfig } from "@/lib/lexical"
 let payloadConfig: Promise<SanitizedConfig> | undefined
 let editorConfig: Promise<SanitizedServerEditorConfig> | undefined
 
+// Everything Payload requires except `db`: sanitization never reads the
+// adapter, so it is omitted on purpose. Typed as `Omit<Config, "db">` so any
+// other newly required field still fails the type check.
+const testConfig: Omit<Config, "db"> = {
+  collections: [Media],
+  secret: "test-secret",
+  sharp,
+}
+
 export function getTestPayloadConfig(): Promise<SanitizedConfig> {
-  payloadConfig ??= buildConfig({
-    collections: [Media],
-    secret: "test-secret",
-    sharp,
-  } as unknown as Config)
+  payloadConfig ??= buildConfig(testConfig as Config)
   return payloadConfig
 }
 

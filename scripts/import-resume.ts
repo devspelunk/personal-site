@@ -10,7 +10,7 @@ import { convertMarkdownToLexical } from "@payloadcms/richtext-lexical"
 import type { SanitizedServerEditorConfig } from "@payloadcms/richtext-lexical"
 import { getPayload, type Payload } from "payload"
 
-import { buildEditorConfig } from "../src/lib/lexical"
+import { buildEditorConfig } from "../src/lib/lexical/editor"
 import type { CareerEntry, SiteSetting, TechStackItem } from "../src/payload-types"
 
 const require = createRequire(import.meta.url)

@@ -27,7 +27,8 @@ import { InlineImageFeature } from "./inline-image/server"
 /**
  * Editor module: the shared richText feature set and the Payload editor
  * adapter built from it. Used by payload.config.ts, migrations, and
- * scripts/import-resume.ts. Rendering lives in ./render.ts.
+ * scripts/import-resume.ts. Rendering lives in ./render.ts; the boot-time
+ * converter coverage check lives in ./render-coverage.ts.
  */
 
 /**
@@ -58,7 +59,7 @@ export const CODE_LANGUAGES: Record<string, string> = {
  *  - Markdown import: `convertMarkdownToLexical` via `features.markdownTransformers`
  *    (the migration and scripts/import-resume.ts)
  *  - render: ./render.ts keeps a converter for every enabled node, checked by
- *    `assertRenderCoverage` at Payload boot
+ *    `assertRenderCoverage` (./render-coverage.ts) at Payload boot
  */
 export const lexicalFeatures = [
   ParagraphFeature(),
