@@ -65,9 +65,6 @@ const root = (...children: unknown[]): SerializedEditorState =>
 export const CODE_SAMPLE =
   "const x: number = 1\nfunction greet(name: string) {\n  return `hi ${name}`\n}"
 
-/** Equivalent Markdown fence for the CodeBlock fixture — used for parity. */
-export const CODE_SAMPLE_MARKDOWN = "```ts\n" + CODE_SAMPLE + "\n```\n"
-
 export const codeBlock = (language: string, code: string) => ({
   type: "block",
   version: 2,

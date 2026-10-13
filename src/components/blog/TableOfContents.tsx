@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 
-import type { Heading } from "@/lib/lexical/rehype"
+import type { Heading } from "@/lib/lexical/render"
 
 import { cn } from "@/lib/utils"
 
