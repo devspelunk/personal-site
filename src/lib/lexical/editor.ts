@@ -25,10 +25,16 @@ import type { SanitizedServerEditorConfig } from "@payloadcms/richtext-lexical"
 import { InlineImageFeature } from "./inline-image/server"
 
 /**
- * Code-fence languages offered by the premade `CodeBlock`. The content audit
- * found no code in the corpus, so this list is seeded deliberately for a dev
- * blog. Keys are the stored language ids (rendered as `language-<key>` in T2,
- * matching shiki/rehype-pretty-code aliases); values are the admin labels.
+ * Editor module: the shared richText feature set and the Payload editor
+ * adapter built from it. Used by payload.config.ts, migrations, and
+ * scripts/import-resume.ts. Rendering lives in ./render.ts; the boot-time
+ * converter coverage check lives in ./render-coverage.ts.
+ */
+
+/**
+ * Code-fence languages offered by the premade `CodeBlock`. Keys are the stored
+ * language ids (rendered as `language-<key>`, matching shiki/rehype-pretty-code
+ * aliases); values are the admin labels.
  */
 export const CODE_LANGUAGES: Record<string, string> = {
   ts: "TypeScript",
@@ -50,8 +56,10 @@ export const CODE_LANGUAGES: Record<string, string> = {
  * explicitly (not derived from `defaultFeatures`) so the enabled node set is
  * deterministic and the coverage invariant is meaningful. Consumed three ways:
  *  - authoring: `lexicalEditor({ features: lexicalFeatures })` (see payload.config)
- *  - backfill (T3): `convertMarkdownToLexical` via `features.markdownTransformers`
- *  - render (T2): the hand-maintained converter map keyed off enabled nodes
+ *  - Markdown import: `convertMarkdownToLexical` via `features.markdownTransformers`
+ *    (the migration and scripts/import-resume.ts)
+ *  - render: ./render.ts keeps a converter for every enabled node, checked by
+ *    `assertRenderCoverage` (./render-coverage.ts) at Payload boot
  */
 export const lexicalFeatures = [
   ParagraphFeature(),
@@ -67,9 +75,9 @@ export const lexicalFeatures = [
   HorizontalRuleFeature(),
   InlineToolbarFeature(),
   FixedToolbarFeature(),
-  // Body images: Media uploads (go-forward). Render needs depth ≥1 (T2).
+  // Body images: Media uploads. Render needs the body fetched at depth ≥1.
   UploadFeature({ collections: { media: { fields: [] } } }),
-  // Multi-line code: premade CodeBlock block + hand-written converter (T2).
+  // Multi-line code: premade CodeBlock block + hand-written converter.
   BlocksFeature({
     blocks: [CodeBlock({ defaultLanguage: "ts", languages: CODE_LANGUAGES })],
   }),
@@ -87,25 +95,12 @@ export const richTextEditor = lexicalEditor({ features: lexicalFeatures })
  * Resolves the **sanitized** server editor config for the shared feature set.
  *
  * Sanitization requires the full `SanitizedConfig` (the Upload/Blocks features
- * reference collections), so callers pass it in — e.g. T3's migration/backfill
- * awaits `@payload-config` and reads `.features.markdownTransformers` off the
- * result to feed `convertMarkdownToLexical`.
+ * reference collections), so callers pass it in — e.g. the Markdown import
+ * migration awaits `@payload-config` and reads `.features.markdownTransformers`
+ * off the result to feed `convertMarkdownToLexical`.
  */
 export function buildEditorConfig(
   config: SanitizedConfig,
 ): Promise<SanitizedServerEditorConfig> {
   return editorConfigFactory.fromFeatures({ config, features: lexicalFeatures })
 }
-
-export {
-  assertConverterCoverage,
-  getEnabledBlockSlugs,
-  getEnabledNodeTypes,
-  type LexicalConverterMap,
-} from "./coverage"
-export { InlineImageFeature } from "./inline-image/server"
-export {
-  INSERT_INLINE_IMAGE_COMMAND,
-  type InlineImagePayload,
-  type SerializedInlineImageNode,
-} from "./inline-image/shared"

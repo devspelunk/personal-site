@@ -10,12 +10,11 @@ import type { SerializedEditorState } from "@payloadcms/richtext-lexical/lexical
 
 import { detailPathFor } from "@/lib/revalidate-paths"
 
-import { type Heading, createUniqueSlug, highlightCodeToHtml } from "./rehype"
+import { highlightCodeToHtml } from "./highlight"
 
 /**
- * Lexical → HTML render path (workstream B). Mirrors `renderMarkdown`'s
- * `{ html, headings, readTime }` contract so each page swaps a single call and
- * keeps `dangerouslySetInnerHTML` + `<TableOfContents>` unchanged.
+ * Lexical → HTML renderer. Returns `{ html, headings, readTime }`: pages inject
+ * `html` and feed `headings` to `<TableOfContents>`.
  *
  * Built on `@payloadcms/richtext-lexical/html-async`'s `convertLexicalToHTMLAsync`
  * (the async variant lives under `/html-async`, not `/html`) with custom
@@ -33,6 +32,33 @@ const escapeHTML = (value: string): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;")
+
+/** A rendered heading, collected for the table of contents. */
+export interface Heading {
+  id: string
+  text: string
+  level: number
+}
+
+export const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+
+/**
+ * Deterministic heading-id generator: `section`, `section-2`, … for repeated
+ * text within one document.
+ */
+export const createUniqueSlug = (text: string, slugCounts: Map<string, number>) => {
+  const baseSlug = slugify(text) || "section"
+  const nextCount = (slugCounts.get(baseSlug) ?? 0) + 1
+  slugCounts.set(baseSlug, nextCount)
+
+  return nextCount === 1 ? baseSlug : `${baseSlug}-${nextCount}`
+}
 
 const ALLOWED_HEADING_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"])
 
@@ -176,7 +202,7 @@ const internalDocToHref: NonNullable<
 /**
  * Builds the per-render converter map. Recreated for each `renderLexical` call
  * so the heading converter can close over this document's `headings`/`slugCounts`
- * and emit the same deterministic id sequence as `renderMarkdown`.
+ * and emit a deterministic id sequence.
  */
 export function buildLexicalConverters(ctx: {
   headings: Heading[]
@@ -189,8 +215,7 @@ export function buildLexicalConverters(ctx: {
     // Override the default link converter to resolve internal doc links.
     ...LinkHTMLConverterAsync({ internalDocToHref }),
 
-    // Headings: stamp deterministic ids + collect the TOC, matching the hast
-    // `addHeadingIds` pass `renderMarkdown` runs.
+    // Headings: stamp deterministic ids + collect the TOC.
     heading: async ({ node, nodesToHTML, providedStyleTag }) => {
       const headingNode = node as unknown as LexicalNodeLike & { tag: string }
       const children = (await nodesToHTML({ nodes: node.children })).join("")
@@ -219,7 +244,7 @@ export function buildLexicalConverters(ctx: {
     // each enabled block slug needs an entry here; `assertConverterCoverage`
     // checks this against the sanitized config.
     blocks: {
-      // Multi-line code: emit the same highlighted markup as a ```lang fence.
+      // Multi-line code: shiki-highlighted `<figure>` markup.
       Code: async ({ node }) => {
         const fields = (node as unknown as LexicalNodeLike).fields ?? {}
         return highlightCodeToHtml({ code: fields.code ?? "", language: fields.language })

@@ -19,7 +19,8 @@ import { TtrpgJournals } from "./collections/TtrpgJournals"
 import { TtrpgLore } from "./collections/TtrpgLore"
 import { Users } from "./collections/Users"
 import { SiteSettings } from "./globals/SiteSettings"
-import { richTextEditor } from "./lib/lexical"
+import { richTextEditor } from "./lib/lexical/editor"
+import { assertRenderCoverage } from "./lib/lexical/render-coverage"
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -29,6 +30,11 @@ export default buildConfig({
     user: "users",
   },
   editor: richTextEditor,
+  // Fail at boot if an enabled richText feature has no HTML converter, rather
+  // than silently dropping that content from rendered pages.
+  onInit: async (payload) => {
+    await assertRenderCoverage(payload.config)
+  },
   collections: [
     Users,
     Media,

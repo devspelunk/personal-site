@@ -2,10 +2,8 @@ import type { SanitizedServerEditorConfig } from "@payloadcms/richtext-lexical"
 
 /**
  * Converter map keyed by Lexical node type (e.g. `paragraph`, `heading`,
- * `upload`, `inlineImage`). Populated in T2 with the actual
- * `@payloadcms/richtext-lexical/html` converters (+ the hand-written
- * `blocks.Code` converter). Values are intentionally `unknown` here — T1 only
- * needs the *keys* to enforce coverage.
+ * `upload`, `inlineImage`), plus `blocks` / `inlineBlocks` sub-maps keyed by
+ * block slug. Values are `unknown` because only the *keys* matter for coverage.
  */
 export type LexicalConverterMap = Record<string, unknown>
 
@@ -68,10 +66,12 @@ const BLOCK_NODE_SUBMAPS: Record<string, "blocks" | "inlineBlocks"> = {
  * types on success.
  */
 export function assertConverterCoverage(args: {
-  converters: LexicalConverterMap
+  /** Any converter map, e.g. Payload's `HTMLConvertersAsync`. Only keys are read. */
+  converters: object
   editorConfig: SanitizedServerEditorConfig
 }): string[] {
-  const { converters, editorConfig } = args
+  const { editorConfig } = args
+  const converters = args.converters as LexicalConverterMap
   const enabled = getEnabledNodeTypes(editorConfig)
   const missing = enabled.filter((type) => !(type in BLOCK_NODE_SUBMAPS) && !(type in converters))
 
@@ -92,3 +92,4 @@ export function assertConverterCoverage(args: {
 
   return enabled
 }
+

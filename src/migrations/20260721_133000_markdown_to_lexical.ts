@@ -1,7 +1,7 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 import { convertMarkdownToLexical } from '@payloadcms/richtext-lexical'
 
-import { buildEditorConfig } from '../lib/lexical'
+import { buildEditorConfig } from '../lib/lexical/editor'
 
 /**
  * Markdown → Lexical richText storage transition (Workstream A / T3).

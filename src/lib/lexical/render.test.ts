@@ -1,26 +1,21 @@
-import { postgresAdapter } from "@payloadcms/db-postgres"
 import {
   convertMarkdownToLexical,
   type SanitizedServerEditorConfig,
 } from "@payloadcms/richtext-lexical"
-import { buildConfig } from "payload"
 import readingTime from "reading-time"
-import sharp from "sharp"
 import { beforeAll, describe, expect, it } from "vitest"
 
-import { Media } from "@/collections/Media"
-import { assertConverterCoverage, buildEditorConfig, getEnabledBlockSlugs } from "@/lib/lexical"
+import { assertConverterCoverage, getEnabledBlockSlugs } from "@/lib/lexical/coverage"
 import {
   buildLexicalConverters,
   isLexicalEmpty,
   lexicalToPlainText,
   renderLexical,
 } from "@/lib/lexical/render"
-import { renderMarkdown } from "@/lib/markdown"
+import { assertRenderCoverage } from "@/lib/lexical/render-coverage"
 
 import {
   codeFixture,
-  CODE_SAMPLE_MARKDOWN,
   fullFixture,
   headingsFixture,
   inlineImageFixture,
@@ -29,32 +24,12 @@ import {
   uploadFixture,
   uploadUnpopulatedFixture,
 } from "./render.fixtures"
-import {
-  SNAPSHOT_HEADINGS,
-  SNAPSHOT_HTML,
-  SNAPSHOT_MARKDOWN,
-  SNAPSHOT_READ_TIME,
-} from "./render.snapshot"
-
-// Mirrors inline-image.test.ts: buildConfig sanitizes the shared editor config
-// (referencing only the `media` collection) without ever connecting to the DB.
-async function getSharedEditorConfig(): Promise<SanitizedServerEditorConfig> {
-  const config = await buildConfig({
-    collections: [Media],
-    db: postgresAdapter({
-      pool: { connectionString: "postgres://localhost:5432/does-not-connect" },
-    }),
-    secret: "test-secret",
-    sharp,
-  })
-
-  return buildEditorConfig(config)
-}
+import { getTestEditorConfig, getTestPayloadConfig } from "./test-editor-config"
 
 let editorConfig: SanitizedServerEditorConfig
 
 beforeAll(async () => {
-  editorConfig = await getSharedEditorConfig()
+  editorConfig = await getTestEditorConfig()
 })
 
 describe("converter coverage", () => {
@@ -69,6 +44,12 @@ describe("converter coverage", () => {
     expect(enabled).toContain("inlineImage")
     expect(enabled).toContain("upload")
     expect(getEnabledBlockSlugs(editorConfig).blocks).toEqual(["Code"])
+  })
+
+  it("passes for the real renderer at Payload boot (onInit path)", async () => {
+    const enabled = await assertRenderCoverage(await getTestPayloadConfig())
+
+    expect(enabled).toContain("inlineImage")
   })
 
   it("throws if the map is missing an enabled node type", () => {
@@ -93,16 +74,6 @@ describe("converter coverage", () => {
   })
 })
 
-describe("renderMarkdown output is unchanged after the tail refactor", () => {
-  it("matches the captured pre-refactor snapshot", async () => {
-    const out = await renderMarkdown(SNAPSHOT_MARKDOWN)
-
-    expect(out.html).toBe(SNAPSHOT_HTML)
-    expect(out.headings).toEqual(SNAPSHOT_HEADINGS)
-    expect(out.readTime).toBe(SNAPSHOT_READ_TIME)
-  })
-})
-
 describe("renderLexical", () => {
   it("stamps deterministic heading ids and collects the TOC", async () => {
     const { html, headings } = await renderLexical(headingsFixture())
@@ -115,14 +86,30 @@ describe("renderLexical", () => {
     ])
   })
 
-  it("highlights code identically to renderMarkdown for an equivalent fence", async () => {
+  it("highlights a code block with the shiki/vesper markup", async () => {
     const { html } = await renderLexical(codeFixture())
-    const md = await renderMarkdown(CODE_SAMPLE_MARKDOWN)
 
-    // Highest-risk assertion: byte-identical shiki/vesper markup.
-    expect(html.trim()).toBe(md.html.trim())
-    expect(html).toContain('data-rehype-pretty-code-figure')
+    expect(html).toContain("data-rehype-pretty-code-figure")
     expect(html).toContain('data-language="ts"')
+    expect(html).toMatchInlineSnapshot(`
+      "<figure data-rehype-pretty-code-figure=""><pre tabindex="0" data-language="ts" data-theme="vesper"><code data-language="ts" data-theme="vesper" style="display: grid;"><span data-line=""><span style="color:#A0A0A0">const</span><span style="color:#FFF"> x</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> number</span><span style="color:#A0A0A0"> =</span><span style="color:#FFC799"> 1</span></span>
+      <span data-line=""><span style="color:#A0A0A0">function</span><span style="color:#FFC799"> greet</span><span style="color:#FFF">(name</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> string</span><span style="color:#FFF">) {</span></span>
+      <span data-line=""><span style="color:#A0A0A0">  return</span><span style="color:#99FFE4"> \`hi \${</span><span style="color:#FFF">name</span><span style="color:#99FFE4">}\`</span></span>
+      <span data-line=""><span style="color:#FFF">}</span></span></code></pre></figure>"
+    `)
+  })
+
+  it("renders a full document to stable html, headings and read time", async () => {
+    const { html, headings, readTime } = await renderLexical(fullFixture())
+
+    // Whitespace is normalized so Payload's converter formatting (newlines and
+    // indentation inside tags) doesn't churn the snapshot on upgrades; the
+    // markup itself stays pinned.
+    const normalizedHtml = html.replace(/\s+/g, " ").replace(/> </g, "><").trim()
+
+    expect(headings.map((h) => `${h.level}:${h.id}`)).toEqual(["1:title", "2:section", "2:section-2"])
+    expect(readTime).toBe(1)
+    expect(normalizedHtml).toMatchInlineSnapshot(`"<h1 id="title">Title</h1><h2 id="section">Section</h2><h2 id="section-2">Section</h2><p>Plain <strong>bold</strong><em>italic</em><span style="text-decoration: line-through;">strike</span><code>code</code></p><p><a href="https://example.com">external</a></p><p><a href="/blog/hello">internal</a></p><ul class="list-bullet"><li class="" style="" value="1" >one</li><li class="" style="" value="2" >two</li></ul><ol class="list-number"><li class="" style="" value="1" >first</li><li class="" style="" value="2" >second</li></ol><blockquote>a quote</blockquote><hr /><figure data-rehype-pretty-code-figure=""><pre tabindex="0" data-language="ts" data-theme="vesper"><code data-language="ts" data-theme="vesper" style="display: grid;"><span data-line=""><span style="color:#A0A0A0">const</span><span style="color:#FFF"> x</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> number</span><span style="color:#A0A0A0"> =</span><span style="color:#FFC799"> 1</span></span><span data-line=""><span style="color:#A0A0A0">function</span><span style="color:#FFC799"> greet</span><span style="color:#FFF">(name</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> string</span><span style="color:#FFF">) {</span></span><span data-line=""><span style="color:#A0A0A0"> return</span><span style="color:#99FFE4"> \`hi \${</span><span style="color:#FFF">name</span><span style="color:#99FFE4">}\`</span></span><span data-line=""><span style="color:#FFF">}</span></span></code></pre></figure><p>Before <img src="/x.png" alt="an image" /> after</p><img alt="uploaded" height="600" src="/media/pic.png" width="800" />"`)
   })
 
   it("renders the custom inline-image node as <img src alt>", async () => {
@@ -323,7 +310,7 @@ describe("isLexicalEmpty", () => {
     expect(isLexicalEmpty(codeFixture())).toBe(false)
   })
 
-  it("agrees with the old Markdown trim check on converted content", () => {
+  it("treats converted Markdown as empty exactly when the source is blank", () => {
     for (const markdown of ["", "   \n\n  ", "Hello", "- item"]) {
       const lexical = convertMarkdownToLexical({ editorConfig, markdown })
       expect(isLexicalEmpty(lexical)).toBe(!markdown.trim())

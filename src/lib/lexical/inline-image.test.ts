@@ -1,41 +1,22 @@
-import { postgresAdapter } from "@payloadcms/db-postgres"
 import {
   convertLexicalToMarkdown,
   convertMarkdownToLexical,
 } from "@payloadcms/richtext-lexical"
 import type { SanitizedServerEditorConfig } from "@payloadcms/richtext-lexical"
-import { buildConfig } from "payload"
-import sharp from "sharp"
 import { beforeAll, describe, expect, it } from "vitest"
 
-import { Media } from "@/collections/Media"
 import {
   assertConverterCoverage,
-  buildEditorConfig,
   getEnabledBlockSlugs,
   getEnabledNodeTypes,
-} from "@/lib/lexical"
+} from "@/lib/lexical/coverage"
 
-// A minimal sanitized Payload config is enough to sanitize the shared editor
-// config: only the `media` collection is referenced (by the Upload feature).
-// buildConfig sanitizes but never connects to the DB.
-async function getSharedEditorConfig(): Promise<SanitizedServerEditorConfig> {
-  const config = await buildConfig({
-    collections: [Media],
-    db: postgresAdapter({
-      pool: { connectionString: "postgres://localhost:5432/does-not-connect" },
-    }),
-    secret: "test-secret",
-    sharp,
-  })
-
-  return buildEditorConfig(config)
-}
+import { getTestEditorConfig } from "./test-editor-config"
 
 let editorConfig: SanitizedServerEditorConfig
 
 beforeAll(async () => {
-  editorConfig = await getSharedEditorConfig()
+  editorConfig = await getTestEditorConfig()
 })
 
 describe("shared lexical editor config", () => {

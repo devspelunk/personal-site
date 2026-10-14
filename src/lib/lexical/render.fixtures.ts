@@ -65,9 +65,6 @@ const root = (...children: unknown[]): SerializedEditorState =>
 export const CODE_SAMPLE =
   "const x: number = 1\nfunction greet(name: string) {\n  return `hi ${name}`\n}"
 
-/** Equivalent Markdown fence for the CodeBlock fixture — used for parity. */
-export const CODE_SAMPLE_MARKDOWN = "```ts\n" + CODE_SAMPLE + "\n```\n"
-
 export const codeBlock = (language: string, code: string) => ({
   type: "block",
   version: 2,
@@ -152,6 +149,7 @@ export const internalLinksFixture = () =>
 /** A full document exercising the whole feature set at once. */
 export const fullFixture = () =>
   root(
+    heading("h1", text("Title")),
     heading("h2", text("Section")),
     heading("h2", text("Section")),
     paragraph(
@@ -196,6 +194,17 @@ export const fullFixture = () =>
       format: "",
       indent: 0,
       children: [listItem(1, text("one")), listItem(2, text("two"))],
+    },
+    {
+      type: "list",
+      listType: "number",
+      tag: "ol",
+      start: 1,
+      version: 1,
+      direction: "ltr",
+      format: "",
+      indent: 0,
+      children: [listItem(1, text("first")), listItem(2, text("second"))],
     },
     { type: "quote", version: 1, direction: "ltr", format: "", indent: 0, children: [text("a quote")] },
     { type: "horizontalrule", version: 1 },
