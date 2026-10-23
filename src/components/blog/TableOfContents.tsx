@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 
+import { ARTICLE_BODY_ID } from "@/components/article/ArticleBody"
 import type { Heading } from "@/lib/lexical/render"
 
 import { cn } from "@/lib/utils"
@@ -20,7 +21,8 @@ export function TableOfContents({ headings }: { headings: Heading[] }) {
   useEffect(() => {
     if (headings.length === 0) return
 
-    const article = document.getElementById("blog-post-content")
+    // Rendered by <ArticleBody tocAnchor>.
+    const article = document.getElementById(ARTICLE_BODY_ID)
     if (!article) return
 
     const elements = Array.from(

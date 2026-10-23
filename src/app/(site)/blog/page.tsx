@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { BlogList, type BlogListPost } from "@/components/blog/BlogList"
 import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { lexicalReadTime } from "@/lib/lexical/render"
+import { bodyReadTime } from "@/lib/lexical/body"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import type { BlogPost, Tag } from "@/payload-types"
@@ -69,7 +69,7 @@ export default async function BlogPage({
       payload.find({ ...query, depth: 0, select: { body: true } }),
     ])
     docs = result.docs
-    readTimes = new Map(bodies.docs.map((doc) => [doc.id, lexicalReadTime(doc.body)]))
+    readTimes = new Map(bodies.docs.map((doc) => [doc.id, bodyReadTime(doc.body)]))
   } catch (error) {
     console.error("[BlogPage] payload.find blog-posts (published list) failed", error)
   }

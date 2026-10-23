@@ -2,13 +2,12 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { useMemo } from "react"
-import DOMPurify from "isomorphic-dompurify"
 
+import { ArticleBody } from "@/components/article/ArticleBody"
 import { slideUp } from "@/lib/animations"
-import type { CareerEntry } from "@/payload-types"
-import { articleBodyClass, cn } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
+import type { CareerHighlightEntry } from "./career-highlight-entry"
 import { SectionHeading } from "./SectionHeading"
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T|\s|$)/
@@ -32,24 +31,11 @@ export const CareerHighlights = ({
   command = "$ history --career",
   variant = "home",
 }: {
-  entries: (CareerEntry & { descriptionHtml?: string })[]
+  entries: CareerHighlightEntry[]
   showViewAll?: boolean
   command?: string
   variant?: "home" | "about"
 }) => {
-  const sanitizedDescriptionHtmlById = useMemo(() => {
-    if (variant !== "about") {
-      return {} as Record<string, string>
-    }
-    const map: Record<string, string> = {}
-    for (const e of entries) {
-      if (e.descriptionHtml) {
-        map[e.id] = DOMPurify.sanitize(e.descriptionHtml)
-      }
-    }
-    return map
-  }, [entries, variant])
-
   return (
     <div>
       <SectionHeading command={command} />
@@ -84,12 +70,7 @@ export const CareerHighlights = ({
             )}
 
             {variant === "about" && entry.descriptionHtml && (
-              <div
-                className={cn("mt-3", articleBodyClass)}
-                dangerouslySetInnerHTML={{
-                  __html: sanitizedDescriptionHtmlById[entry.id],
-                }}
-              />
+              <ArticleBody body={{ html: entry.descriptionHtml }} className="mt-3" />
             )}
           </motion.div>
         ))}

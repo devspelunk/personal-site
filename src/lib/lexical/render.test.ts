@@ -99,8 +99,8 @@ describe("renderLexical", () => {
     `)
   })
 
-  it("renders a full document to stable html, headings and read time", async () => {
-    const { html, headings, readTime } = await renderLexical(fullFixture())
+  it("renders a full document to stable html and headings", async () => {
+    const { html, headings } = await renderLexical(fullFixture())
 
     // Whitespace is normalized so Payload's converter formatting (newlines and
     // indentation inside tags) doesn't churn the snapshot on upgrades; the
@@ -108,7 +108,6 @@ describe("renderLexical", () => {
     const normalizedHtml = html.replace(/\s+/g, " ").replace(/> </g, "><").trim()
 
     expect(headings.map((h) => `${h.level}:${h.id}`)).toEqual(["1:title", "2:section", "2:section-2"])
-    expect(readTime).toBe(1)
     expect(normalizedHtml).toMatchInlineSnapshot(`"<h1 id="title">Title</h1><h2 id="section">Section</h2><h2 id="section-2">Section</h2><p>Plain <strong>bold</strong><em>italic</em><span style="text-decoration: line-through;">strike</span><code>code</code></p><p><a href="https://example.com">external</a></p><p><a href="/blog/hello">internal</a></p><ul class="list-bullet"><li class="" style="" value="1" >one</li><li class="" style="" value="2" >two</li></ul><ol class="list-number"><li class="" style="" value="1" >first</li><li class="" style="" value="2" >second</li></ol><blockquote>a quote</blockquote><hr /><figure data-rehype-pretty-code-figure=""><pre tabindex="0" data-language="ts" data-theme="vesper"><code data-language="ts" data-theme="vesper" style="display: grid;"><span data-line=""><span style="color:#A0A0A0">const</span><span style="color:#FFF"> x</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> number</span><span style="color:#A0A0A0"> =</span><span style="color:#FFC799"> 1</span></span><span data-line=""><span style="color:#A0A0A0">function</span><span style="color:#FFC799"> greet</span><span style="color:#FFF">(name</span><span style="color:#A0A0A0">:</span><span style="color:#FFC799"> string</span><span style="color:#FFF">) {</span></span><span data-line=""><span style="color:#A0A0A0"> return</span><span style="color:#99FFE4"> \`hi \${</span><span style="color:#FFF">name</span><span style="color:#99FFE4">}\`</span></span><span data-line=""><span style="color:#FFF">}</span></span></code></pre></figure><p>Before <img src="/x.png" alt="an image" /> after</p><img alt="uploaded" height="600" src="/media/pic.png" width="800" />"`)
   })
 
@@ -182,12 +181,52 @@ describe("renderLexical", () => {
     expect(html).toContain("line-through")
     expect(html).toContain("<code>code</code>")
   })
+})
 
-  it("computes a sane reading time", async () => {
-    const { readTime } = await renderLexical(fullFixture())
+// The sanitization decision: rendered html is injected without a second
+// sanitizer pass, so the renderer itself must neutralize hostile content.
+describe("renderLexical output safety", () => {
+  const doc = (...children: unknown[]) => ({ root: { type: "root", children } }) as never
+  const paragraph = (...children: unknown[]) => ({ type: "paragraph", children })
 
-    expect(readTime).toBeGreaterThanOrEqual(1)
-    expect(Number.isFinite(readTime)).toBe(true)
+  it("escapes markup in text", async () => {
+    const { html } = await renderLexical(doc(paragraph(text('<script>alert(1)</script>'))))
+
+    expect(html).not.toContain("<script>")
+    expect(html).toContain("&lt;script&gt;")
+  })
+
+  it("escapes markup in heading text without breaking the id", async () => {
+    const { html, headings } = await renderLexical(
+      doc({ type: "heading", tag: "h2", children: [text('<img src=x onerror="alert(1)">')] }),
+    )
+
+    expect(html).not.toContain("<img")
+    expect(headings[0]?.id).toMatch(/^[a-z0-9-]+$/)
+  })
+
+  it("neutralizes javascript: URLs in links and inline images", async () => {
+    const { html } = await renderLexical(
+      doc(
+        paragraph({
+          type: "link",
+          fields: { linkType: "custom", url: "javascript:alert(1)", newTab: false },
+          children: [text("x")],
+        }),
+        paragraph({ type: "inlineImage", src: "javascript:alert(1)", alt: "x" }),
+      ),
+    )
+
+    expect(html).not.toContain("javascript:")
+  })
+
+  it("keeps attribute values quoted when alt text contains quotes", async () => {
+    const { html } = await renderLexical(
+      doc(paragraph({ type: "inlineImage", src: "/a.png", alt: '" onerror="alert(1)' })),
+    )
+
+    // The quote is escaped, so "onerror" stays text inside the alt attribute.
+    expect(html).toContain('alt="&quot; onerror=&quot;alert(1)"')
   })
 })
 

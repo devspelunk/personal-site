@@ -1,5 +1,3 @@
-import readingTime from "reading-time"
-
 import {
   convertLexicalToHTMLAsync,
   defaultHTMLConvertersAsync,
@@ -7,19 +5,27 @@ import {
   type HTMLConvertersAsync,
 } from "@payloadcms/richtext-lexical/html-async"
 import type { SerializedEditorState } from "@payloadcms/richtext-lexical/lexical"
+import { sanitizeUrl } from "payload/shared"
 
 import { detailPathFor } from "@/lib/revalidate-paths"
 
 import { highlightCodeToHtml } from "./highlight"
 
 /**
- * Lexical → HTML renderer. Returns `{ html, headings, readTime }`: pages inject
- * `html` and feed `headings` to `<TableOfContents>`.
+ * Lexical → HTML renderer. Returns `{ html, headings }`. Pages don't call this
+ * directly: they go through `renderBody` in ./body.ts, which adds read time,
+ * excerpt and emptiness on top.
  *
  * Built on `@payloadcms/richtext-lexical/html-async`'s `convertLexicalToHTMLAsync`
  * (the async variant lives under `/html-async`, not `/html`) with custom
  * converters for the pieces the defaults don't cover: the `CodeBlock` block,
  * the custom inline-image node, internal links, and heading ids/TOC.
+ *
+ * Output safety: every converter escapes what it emits. Payload's text and
+ * link converters escape text and run URLs through `sanitizeUrl`; the custom
+ * converters below do the same; heading ids are `[a-z0-9-]` slugs; shiki
+ * escapes code. Rendered html is therefore injected without a second
+ * sanitizer pass (pinned by the "output safety" tests).
  */
 
 // Minimal HTML-attribute escaper. `escape-html` (used by Payload's own
@@ -122,8 +128,8 @@ const nodesToPlainText = (nodes: LexicalNodeLike[] | undefined): string => {
 }
 
 /**
- * AST → plain text walker feeding `reading-time`. Reused by the reading-time
- * sites (via `renderLexical`'s `readTime`) so word counts stay consistent.
+ * AST → plain text walker. Feeds read time and derived excerpts (./body.ts),
+ * so word counts and excerpts come from one text extraction.
  * Top-level blocks are separated by a blank line, nested blocks (list items,
  * quote lines) and line breaks by a single newline.
  */
@@ -153,14 +159,6 @@ const hasNonTextContent = (node: LexicalNodeLike | undefined): boolean =>
 export function isLexicalEmpty(data: SerializedEditorState | null | undefined): boolean {
   const children = (data?.root?.children ?? []) as LexicalNodeLike[]
   return !children.some(hasNonTextContent) && lexicalToPlainText(data) === ""
-}
-
-/**
- * Returns the reading time in whole minutes, or `null` when the body has no
- * content (so list cards omit "0 min read", as they did for empty Markdown).
- */
-export function lexicalReadTime(data: SerializedEditorState | null | undefined): number | null {
-  return isLexicalEmpty(data) ? null : Math.ceil(readingTime(lexicalToPlainText(data)).minutes)
 }
 
 /**
@@ -235,7 +233,7 @@ export function buildLexicalConverters(ctx: {
     // Custom URL-image node → `<img src alt>`.
     inlineImage: ({ node }) => {
       const imageNode = node as unknown as { src?: string; alt?: string }
-      const src = escapeHTML(imageNode.src ?? "")
+      const src = escapeHTML(sanitizeUrl(imageNode.src ?? ""))
       const alt = escapeHTML(imageNode.alt ?? "")
       return `<img src="${src}" alt="${alt}" />`
     },
@@ -263,7 +261,7 @@ export interface RenderLexicalOptions {
 }
 
 /**
- * Renders a Lexical editor state to `{ html, headings, readTime }`. A null or
+ * Renders a Lexical editor state to `{ html, headings }`. A null or
  * absent value renders as an empty document.
  *
  * The caller must fetch `data` at **depth ≥1** (so Upload node values are
@@ -273,7 +271,7 @@ export interface RenderLexicalOptions {
 export async function renderLexical(
   value: SerializedEditorState | null | undefined,
   options: RenderLexicalOptions = {},
-): Promise<{ html: string; headings: Heading[]; readTime: number }> {
+): Promise<{ html: string; headings: Heading[] }> {
   const { populate } = options
   const data = value ?? EMPTY_LEXICAL
   const headings: Heading[] = []
@@ -286,7 +284,5 @@ export async function renderLexical(
     populate,
   })
 
-  const readTime = Math.ceil(readingTime(lexicalToPlainText(data)).minutes)
-
-  return { html, headings, readTime }
+  return { html, headings }
 }

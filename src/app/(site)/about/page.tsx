@@ -2,17 +2,18 @@ import type { Metadata } from "next"
 import Image from "next/image"
 import { Circle, Github, Linkedin, Mail, X } from "lucide-react"
 
+import { ArticleBody } from "@/components/article/ArticleBody"
 import { CareerHighlights } from "@/components/homepage/CareerHighlights"
+import { toCareerHighlightEntry } from "@/components/homepage/career-highlight-entry"
 import { SectionHeading } from "@/components/homepage/SectionHeading"
 import { Testimonials } from "@/components/homepage/Testimonials"
 import { Button } from "@/components/ui/button"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { isLexicalEmpty, renderLexical } from "@/lib/lexical/render"
+import { renderBody } from "@/lib/lexical/body"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import type { CareerEntry, SiteSetting, Testimonial } from "@/payload-types"
-import { articleBodyClass } from "@/lib/utils"
 
 export const revalidate = 3600
 
@@ -76,15 +77,12 @@ export default async function AboutPage() {
     console.error("[AboutPage] payload fetch failed", error)
   }
 
-  const { html: bioHtml } = await renderLexical(settings.bio)
+  const bio = await renderBody(settings.bio)
 
   const careerEntriesForAbout = await Promise.all(
     entries.map(async (entry) => {
-      if (!entry.description || isLexicalEmpty(entry.description)) {
-        return { ...entry }
-      }
-      const { html } = await renderLexical(entry.description)
-      return { ...entry, descriptionHtml: html }
+      const description = await renderBody(entry.description)
+      return toCareerHighlightEntry(entry, description.isEmpty ? undefined : description.html)
     })
   )
 
@@ -147,10 +145,7 @@ export default async function AboutPage() {
             <h2 className="mb-4 font-mono text-2xl font-semibold text-foreground">
               {displayName}
             </h2>
-            <div
-              className={articleBodyClass}
-              dangerouslySetInnerHTML={{ __html: bioHtml }}
-            />
+            <ArticleBody body={bio} />
           </div>
         </div>
       </section>
