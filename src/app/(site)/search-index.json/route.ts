@@ -1,3 +1,4 @@
+import { bodyExcerpt } from "@/lib/lexical/body"
 import { getPayload } from "@/lib/payload"
 import type { Campaign, Tag } from "@/payload-types"
 
@@ -26,18 +27,23 @@ type SearchEntry = {
   url: string
 }
 
-/** Names of the tag relations Payload populated at depth >= 1. */
-function tagNames(tags: (number | Tag)[] | null | undefined): string[] {
-  return (tags ?? [])
-    .filter((tag): tag is Tag => typeof tag === "object" && tag !== null)
-    .map((tag) => tag.name)
+type NameById = Map<number, string>
+
+/** Tag names for a doc's tag relations (ids at depth 0, or populated docs). */
+function tagNames(tags: (number | Tag)[] | null | undefined, names: NameById): string[] {
+  return (tags ?? []).flatMap((tag) => {
+    const name = typeof tag === "object" ? tag.name : names.get(tag)
+    return name ? [name] : []
+  })
 }
 
-/** Name of the campaign relation populated at depth >= 1, or null. */
+/** Campaign name for a doc's campaign relation, or null. */
 function campaignName(
-  campaign: (number | null) | Campaign | undefined
+  campaign: (number | null) | Campaign | undefined,
+  names: NameById
 ): string | null {
-  return campaign && typeof campaign === "object" ? campaign.name : null
+  if (campaign == null) return null
+  return typeof campaign === "object" ? campaign.name : (names.get(campaign) ?? null)
 }
 
 export async function GET() {
@@ -96,61 +102,32 @@ export async function GET() {
   try {
     const payload = await getPayload()
 
-    // Rich-text bodies are never shown here; `select` drops them so depth 1
-    // only populates tags/campaigns, not every upload and link inside a body.
-    const [blogPosts, projects, journals, characters, lore, homebrew] =
+    // Depth 0: bodies arrive unpopulated (no uploads or links resolved), which
+    // is all the excerpt rule needs. Tag and campaign names come from two
+    // lookups instead of populating every relation.
+    const find = { depth: 0, limit: 0, ...PUBLIC_READ } as const
+    const [blogPosts, projects, journals, characters, lore, homebrew, tags, campaigns] =
       await Promise.all([
-        payload.find({
-          collection: "blog-posts",
-          depth: 1,
-          select: { body: false },
-          limit: 0,
-          ...PUBLIC_READ,
-        }),
-        payload.find({
-          collection: "projects",
-          depth: 1,
-          select: { description: false },
-          limit: 0,
-          ...PUBLIC_READ,
-        }),
-        payload.find({
-          collection: "ttrpg-journals",
-          depth: 1,
-          select: { body: false },
-          limit: 0,
-          ...PUBLIC_READ,
-        }),
-        payload.find({
-          collection: "ttrpg-characters",
-          depth: 1,
-          select: { backstory: false },
-          limit: 0,
-          ...PUBLIC_READ,
-        }),
-        payload.find({
-          collection: "ttrpg-lore",
-          depth: 1,
-          select: { body: false },
-          limit: 0,
-          ...PUBLIC_READ,
-        }),
-        payload.find({
-          collection: "ttrpg-homebrew",
-          depth: 1,
-          select: { body: false },
-          limit: 0,
-          ...PUBLIC_READ,
-        }),
+        payload.find({ collection: "blog-posts", ...find }),
+        payload.find({ collection: "projects", ...find }),
+        payload.find({ collection: "ttrpg-journals", ...find }),
+        payload.find({ collection: "ttrpg-characters", ...find }),
+        payload.find({ collection: "ttrpg-lore", ...find }),
+        payload.find({ collection: "ttrpg-homebrew", ...find }),
+        payload.find({ collection: "tags", ...find, select: { name: true } }),
+        payload.find({ collection: "campaigns", ...find, select: { name: true } }),
       ])
+
+    const tagNameById: NameById = new Map(tags.docs.map((t) => [t.id, t.name]))
+    const campaignNameById: NameById = new Map(campaigns.docs.map((c) => [c.id, c.name]))
 
     for (const post of blogPosts.docs) {
       entries.push({
         id: `blog-${post.id}`,
         type: "blog",
         title: post.title,
-        description: post.excerpt ?? null,
-        tags: tagNames(post.tags),
+        description: bodyExcerpt(post.body, post.excerpt),
+        tags: tagNames(post.tags, tagNameById),
         slug: post.slug,
         url: `/blog/${post.slug}`,
       })
@@ -161,20 +138,20 @@ export async function GET() {
         id: `project-${project.id}`,
         type: "project",
         title: project.title,
-        description: project.short_description ?? null,
-        tags: tagNames(project.tags),
+        description: bodyExcerpt(project.description, project.short_description),
+        tags: tagNames(project.tags, tagNameById),
         slug: project.slug,
         url: `/projects/${project.slug}`,
       })
     }
 
     for (const j of journals.docs) {
-      const campaign = campaignName(j.campaign)
+      const campaign = campaignName(j.campaign, campaignNameById)
       entries.push({
         id: `journal-${j.id}`,
         type: "journal",
         title: j.title,
-        description: null,
+        description: bodyExcerpt(j.body, j.excerpt),
         tags: campaign ? [campaign] : [],
         slug: j.slug,
         url: `/ttrpg/journals/${j.slug}`,
@@ -182,12 +159,12 @@ export async function GET() {
     }
 
     for (const c of characters.docs) {
-      const campaign = campaignName(c.campaign)
+      const campaign = campaignName(c.campaign, campaignNameById)
       entries.push({
         id: `character-${c.id}`,
         type: "character",
         title: c.name,
-        description: null,
+        description: bodyExcerpt(c.backstory, c.class_role),
         tags: campaign ? [campaign] : [],
         slug: c.slug,
         url: `/ttrpg/characters/${c.slug}`,
@@ -195,12 +172,12 @@ export async function GET() {
     }
 
     for (const l of lore.docs) {
-      const campaign = campaignName(l.campaign)
+      const campaign = campaignName(l.campaign, campaignNameById)
       entries.push({
         id: `lore-${l.id}`,
         type: "lore",
         title: l.title,
-        description: null,
+        description: bodyExcerpt(l.body),
         tags: [l.category, ...(campaign ? [campaign] : [])],
         slug: l.slug,
         url: `/ttrpg/lore/${l.slug}`,
@@ -208,12 +185,12 @@ export async function GET() {
     }
 
     for (const h of homebrew.docs) {
-      const campaign = campaignName(h.campaign)
+      const campaign = campaignName(h.campaign, campaignNameById)
       entries.push({
         id: `homebrew-${h.id}`,
         type: "homebrew",
         title: h.title,
-        description: null,
+        description: bodyExcerpt(h.body),
         tags: [h.type, ...(campaign ? [campaign] : [])],
         slug: h.slug,
         url: `/ttrpg/homebrew/${h.slug}`,

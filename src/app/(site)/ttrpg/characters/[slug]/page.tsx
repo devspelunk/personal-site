@@ -5,11 +5,11 @@ import { notFound } from "next/navigation"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderLexical } from "@/lib/lexical/render"
+import { ArticleBody } from "@/components/article/ArticleBody"
+import { bodyExcerpt, renderBody } from "@/lib/lexical/body"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
-import { articleBodyClass } from "@/lib/utils"
 
 export const revalidate = 3600
 
@@ -45,7 +45,7 @@ export async function generateMetadata({
 
   const siteUrl = getServerSiteUrl()
   const url = `${siteUrl}/ttrpg/characters/${character.slug}`
-  const description = character.class_role ?? undefined
+  const description = bodyExcerpt(character.backstory, character.class_role) ?? undefined
   const imageUrl = getMediaUrl(character.portrait) ?? `${siteUrl}/og-default.png`
 
   return {
@@ -93,7 +93,7 @@ export default async function TtrpgCharacterPage({
       : null
   const portraitUrl = getMediaUrl(character.portrait)
 
-  const { html } = await renderLexical(character.backstory)
+  const body = await renderBody(character.backstory)
 
   const siteUrl = getServerSiteUrl()
   const breadcrumbLd = buildBreadcrumbJsonLd([
@@ -179,10 +179,7 @@ export default async function TtrpgCharacterPage({
           <h2 className="mb-4 font-mono text-lg font-semibold text-primary">
             Backstory
           </h2>
-          <div
-            className={articleBodyClass}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+          <ArticleBody body={body} />
         </section>
       </article>
     </div>

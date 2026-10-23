@@ -1,5 +1,9 @@
 
 import { CareerHighlights } from "@/components/homepage/CareerHighlights"
+import {
+  type CareerHighlightEntry,
+  toCareerHighlightEntry,
+} from "@/components/homepage/career-highlight-entry"
 import { FeaturedProjects } from "@/components/homepage/FeaturedProjects"
 import { GitHubHeatmap } from "@/components/homepage/GitHubHeatmap"
 import { HeroCodeAnimation } from "@/components/homepage/HeroCodeAnimation"
@@ -9,12 +13,11 @@ import { Testimonials } from "@/components/homepage/Testimonials"
 import { VectorAccent } from "@/components/ornament/VectorAccent"
 import { fetchGitHubContributions } from "@/lib/github"
 import { jsonLdScriptHtml } from "@/lib/jsonld"
-import { lexicalReadTime } from "@/lib/lexical/render"
+import { bodyReadTime } from "@/lib/lexical/body"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
 import type {
-  CareerEntry,
   Project,
   TechStackItem,
   Testimonial,
@@ -53,7 +56,7 @@ export default async function HomePage() {
     thumbnail: string | null
     tags: { id: number; name: string }[]
   }[] = []
-  let careerEntries: CareerEntry[] = []
+  let careerEntries: CareerHighlightEntry[] = []
   let latestBlogPosts: {
     id: number
     slug: string
@@ -92,6 +95,8 @@ export default async function HomePage() {
       payload.find({
         collection: "career-entries",
         depth: 0,
+        // The home timeline never shows the richText description.
+        select: { description: false },
         where: { is_homepage_highlight: { equals: true } },
         sort: "sort_order",
         limit: 0,
@@ -148,12 +153,12 @@ export default async function HomePage() {
       tags: resolveTags(project.tags),
     }))
 
-    careerEntries = careerRes.docs
+    careerEntries = careerRes.docs.map((entry) => toCareerHighlightEntry(entry))
     techStackItems = techRes.docs
     testimonials = testimonialsRes.docs
 
     const readTimes = new Map(
-      blogBodiesRes.docs.map((post) => [post.id, lexicalReadTime(post.body)]),
+      blogBodiesRes.docs.map((post) => [post.id, bodyReadTime(post.body)]),
     )
     latestBlogPosts = blogRes.docs.map((post) => ({
       id: post.id,

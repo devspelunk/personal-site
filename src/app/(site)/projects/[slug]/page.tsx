@@ -5,11 +5,11 @@ import { ExternalLink, Github } from "lucide-react"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderLexical } from "@/lib/lexical/render"
+import { ArticleBody } from "@/components/article/ArticleBody"
+import { bodyExcerpt, renderBody } from "@/lib/lexical/body"
 import { getMediaUrl } from "@/lib/media"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
-import { articleBodyClass } from "@/lib/utils"
 import { DataStrip, formatDataStripCode } from "@/components/ornament/DataStrip"
 import { GlitchText } from "@/components/ornament/Glitch"
 import type { Project, Tag } from "@/payload-types"
@@ -51,7 +51,7 @@ export async function generateMetadata({
 
   const siteUrl = getServerSiteUrl()
   const url = `${siteUrl}/projects/${project.slug}`
-  const description = project.short_description ?? undefined
+  const description = bodyExcerpt(project.description, project.short_description) ?? undefined
 
   return {
     title: project.title,
@@ -91,7 +91,7 @@ export default async function ProjectDetailPage({
     notFound()
   }
 
-  const { html } = await renderLexical(project.description)
+  const body = await renderBody(project.description)
 
   const displayTags = resolveTags(project.tags)
   const thumbnailUrl = getMediaUrl(project.thumbnail)
@@ -145,10 +145,7 @@ export default async function ProjectDetailPage({
     ) : null
 
   const bodyBlock = (
-    <div
-      className={articleBodyClass}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <ArticleBody body={body} />
   )
 
   return (

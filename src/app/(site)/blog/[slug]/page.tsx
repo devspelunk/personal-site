@@ -5,10 +5,11 @@ import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { RelatedPosts } from "@/components/blog/RelatedPosts"
 import { TableOfContents } from "@/components/blog/TableOfContents"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { lexicalReadTime, renderLexical } from "@/lib/lexical/render"
+import { ArticleBody } from "@/components/article/ArticleBody"
+import { bodyExcerpt, bodyReadTime, renderBody } from "@/lib/lexical/body"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
-import { articleBodyClass, formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
 import { DataStrip, formatDataStripCode } from "@/components/ornament/DataStrip"
 import { GlitchText } from "@/components/ornament/Glitch"
 import type { BlogPost, Tag } from "@/payload-types"
@@ -50,13 +51,14 @@ export async function generateMetadata({
 
   const siteUrl = getServerSiteUrl()
   const url = `${siteUrl}/blog/${post.slug}`
+  const description = bodyExcerpt(post.body, post.excerpt) ?? undefined
 
   return {
     title: post.title,
-    description: post.excerpt ?? undefined,
+    description,
     openGraph: {
       title: post.title,
-      description: post.excerpt ?? undefined,
+      description,
       type: "article",
       url,
       publishedTime: post.date_published ?? undefined,
@@ -64,7 +66,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary_large_image",
       title: post.title,
-      description: post.excerpt ?? undefined,
+      description,
     },
   }
 }
@@ -93,7 +95,7 @@ export default async function BlogPostPage({
     notFound()
   }
 
-  const { html, headings, readTime } = await renderLexical(post.body)
+  const body = await renderBody(post.body, { excerpt: post.excerpt })
 
   const displayTags = resolveTags(post.tags)
   const tagIds = displayTags.map((tag) => tag.id)
@@ -116,7 +118,7 @@ export default async function BlogPostPage({
     slug: p.slug,
     title: p.title,
     date_published: p.date_published ?? null,
-    readTime: lexicalReadTime(p.body),
+    readTime: bodyReadTime(p.body),
   }))
 
   const siteUrl = getServerSiteUrl()
@@ -126,7 +128,7 @@ export default async function BlogPostPage({
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
-    description: post.excerpt ?? undefined,
+    description: body.excerpt ?? undefined,
     datePublished: post.date_published ?? undefined,
     author: {
       "@type": "Person",
@@ -146,7 +148,7 @@ export default async function BlogPostPage({
 
   const metaParts: string[] = []
   if (post.date_published) metaParts.push(formatDate(post.date_published))
-  metaParts.push(`${readTime} min read`)
+  if (body.readTime !== null) metaParts.push(`${body.readTime} min read`)
 
   return (
     <>
@@ -160,7 +162,7 @@ export default async function BlogPostPage({
       />
       <div className="mx-auto w-full max-w-6xl px-4 py-12">
         <div className="mb-8 flex flex-col gap-8 lg:flex-row lg:gap-12">
-          <TableOfContents headings={headings} />
+          <TableOfContents headings={body.headings} />
           <article className="min-w-0 flex-1">
             <Breadcrumb
               items={[{ label: "Blog", href: "/blog" }, { label: post.title }]}
@@ -180,16 +182,11 @@ export default async function BlogPostPage({
               </GlitchText>
               <p className="text-sm text-muted-foreground">
                 <span className="text-foreground">{authorName}</span>
-                {" · "}
-                {metaParts.join(" · ")}
+                {metaParts.length > 0 && ` · ${metaParts.join(" · ")}`}
               </p>
             </header>
 
-            <div
-              id="blog-post-content"
-              className={articleBodyClass}
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
+            <ArticleBody body={body} tocAnchor />
 
             {displayTags.length > 0 && (
               <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-8">

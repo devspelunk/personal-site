@@ -4,10 +4,11 @@ import { notFound } from "next/navigation"
 
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { renderLexical } from "@/lib/lexical/render"
+import { ArticleBody } from "@/components/article/ArticleBody"
+import { bodyExcerpt, renderBody } from "@/lib/lexical/body"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
-import { articleBodyClass, formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
 
 export const revalidate = 3600
 
@@ -44,19 +45,21 @@ export async function generateMetadata({
   const siteUrl = getServerSiteUrl()
   const url = `${siteUrl}/ttrpg/journals/${post.slug}`
 
+  const description = bodyExcerpt(post.body, post.excerpt) ?? undefined
+
   return {
     title: post.title,
-    description: post.excerpt ?? undefined,
+    description,
     openGraph: {
       title: post.title,
-      description: post.excerpt ?? undefined,
+      description,
       type: "article",
       url,
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
-      description: post.excerpt ?? undefined,
+      description,
     },
   }
 }
@@ -84,7 +87,7 @@ export default async function TtrpgJournalPage({
   const campaign =
     post.campaign && typeof post.campaign === "object" ? post.campaign : null
 
-  const { html } = await renderLexical(post.body)
+  const body = await renderBody(post.body)
 
   const titleLine =
     post.session_number != null
@@ -141,10 +144,7 @@ export default async function TtrpgJournalPage({
           </p>
         </header>
 
-        <div
-          className={articleBodyClass}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        <ArticleBody body={body} />
       </article>
     </div>
   )

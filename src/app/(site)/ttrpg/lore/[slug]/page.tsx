@@ -5,10 +5,10 @@ import { notFound } from "next/navigation"
 import { Breadcrumb } from "@/components/blog/Breadcrumb"
 import { Badge } from "@/components/ui/badge"
 import { buildBreadcrumbJsonLd, jsonLdScriptHtml } from "@/lib/jsonld"
-import { lexicalToPlainText, renderLexical } from "@/lib/lexical/render"
+import { ArticleBody } from "@/components/article/ArticleBody"
+import { bodyExcerpt, renderBody } from "@/lib/lexical/body"
 import { getPayload } from "@/lib/payload"
 import { getServerSiteUrl } from "@/lib/site-url"
-import { articleBodyClass } from "@/lib/utils"
 
 export const revalidate = 3600
 
@@ -48,7 +48,7 @@ export async function generateMetadata({
 
   const siteUrl = getServerSiteUrl()
   const url = `${siteUrl}/ttrpg/lore/${entry.slug}`
-  const plain = lexicalToPlainText(entry.body).slice(0, 160).trim() || undefined
+  const plain = bodyExcerpt(entry.body) ?? undefined
 
   return {
     title: entry.title,
@@ -90,7 +90,7 @@ export default async function TtrpgLorePage({
   const campaign =
     entry.campaign && typeof entry.campaign === "object" ? entry.campaign : null
 
-  const { html } = await renderLexical(entry.body)
+  const body = await renderBody(entry.body)
 
   const siteUrl = getServerSiteUrl()
   const breadcrumbLd = buildBreadcrumbJsonLd([
@@ -139,10 +139,7 @@ export default async function TtrpgLorePage({
           </div>
         </header>
 
-        <div
-          className={articleBodyClass}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
+        <ArticleBody body={body} />
       </article>
     </div>
   )
